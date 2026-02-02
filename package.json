@@ -1,0 +1,13 @@
+{
+  "name": "budgetme_frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "frontend:preview": "npm --prefix frontend run preview",
+    "frontend:lint": "npm --prefix frontend run lint",
+    "backend:dev": "uv run uvicorn backend.main:app --reload",
+    "dev": "npm run frontend:dev"
+  }
+}
