@@ -1,4 +1,3 @@
-from logging import Logger
 from dotenv import load_dotenv
 from fastapi import FastAPI
 import uvicorn
@@ -8,8 +7,7 @@ from app.server import Server
 load_dotenv()
 
 _app_config = get_app_config()
-_logger = Logger("budgetMe Backend Server", level=_app_config.server_config.log_level.upper())
-app = Server(logger=_logger, app_config=_app_config).create_server()
+app = Server(app_config=_app_config).create_server()
 
 
 def main():

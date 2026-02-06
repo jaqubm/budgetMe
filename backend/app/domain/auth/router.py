@@ -1,19 +1,19 @@
-from logging import Logger
 from fastapi import APIRouter, HTTPException, Request, Depends
-from fastapi.responses import JSONResponse
+from fastapi.responses import RedirectResponse
+from fastapi.security import OAuth2AuthorizationCodeBearer
 
 from app.config.auth_config import AuthConfig
 from app.domain.auth.repository import AuthRepository
-from app.domain.auth.schema import TokenResponse, CurrentUser
+from app.domain.auth.schema import VerifyTokenRequest, VerifyTokenResponse, UserInfo
+from app.exceptions import OAuthError, InvalidTokenError, TokenVerificationError
 from authlib.integrations.starlette_client import OAuth
 
 
 class AuthRouter:
-    """Router for authentication endpoints using domain-driven design"""
+    """Router for authentication endpoints using Google OAuth tokens"""
     
-    def __init__(self, path: str, logger: Logger, auth_config: AuthConfig):
+    def __init__(self, path: str, auth_config: AuthConfig):
         self.__path: str = path
-        self.__logger: Logger = logger
         self.__auth_config = auth_config
         
         # Initialize OAuth
@@ -27,7 +27,7 @@ class AuthRouter:
         )
         
         # Initialize repository
-        self.__repository = AuthRepository(auth_config, oauth, logger)
+        self.__repository = AuthRepository(auth_config, oauth)
     
     def __get_token_from_header(self, request: Request) -> str:
         """Extract token from Authorization header"""
@@ -38,72 +38,51 @@ class AuthRouter:
     
     def create_router(self) -> APIRouter:
         """Create and configure the authentication router"""
-        self.__logger.info("Creating Auth Router with DDD pattern")
-        self.__logger.info(f"Auth Router Path: {self.__path}")
+        # OAuth2 scheme for Swagger UI
+        oauth2_scheme = OAuth2AuthorizationCodeBearer(
+            authorizationUrl="https://accounts.google.com/o/oauth2/v2/auth",
+            tokenUrl="https://oauth2.googleapis.com/token",
+            scopes={"openid": "OpenID", "email": "Email", "profile": "Profile"}
+        )
         
         router = APIRouter(prefix=self.__path, tags=["auth"])
         
         @router.get("/login")
         async def login(request: Request):
-            """Initiate Google OAuth login flow"""
+            """Redirect to Google OAuth login page"""
             try:
                 oauth_client = await self.__repository.get_oauth_client()
-                redirect_uri = request.url_for('auth_callback')
+                redirect_uri = self.__auth_config.oauth_redirect_uri
                 return await oauth_client.authorize_redirect(request, redirect_uri)
             except Exception as e:
-                self.__logger.error(f"Login initiation failed: {str(e)}")
-                raise HTTPException(status_code=500, detail="Failed to initiate login")
+                raise OAuthError(f"Failed to initiate login: {str(e)}")
         
-        @router.get("/callback", response_model=TokenResponse)
-        async def auth_callback(request: Request):
-            """Handle Google OAuth callback and return JWT token"""
+        @router.post("/verify", response_model=VerifyTokenResponse)
+        async def verify_token(token_request: VerifyTokenRequest):
+            """Verify Google ID token and return user info"""
             try:
-                # Get OAuth token from Google
-                oauth_client = await self.__repository.get_oauth_client()
-                token = await oauth_client.authorize_access_token(request)
-                
-                # Parse user info
-                user_info = self.__repository.parse_user_info(token)
-                
-                # Create access token
-                access_token = self.__repository.create_access_token(user_info)
-                
-                self.__logger.info(f"User authenticated successfully: {user_info.email}")
-                
-                return TokenResponse(
-                    access_token=access_token,
-                    token_type="bearer",
-                    user=user_info
-                )
-                
-            except ValueError as e:
-                self.__logger.error(f"Authentication validation error: {str(e)}")
-                raise HTTPException(status_code=400, detail=str(e))
-            except Exception as e:
-                self.__logger.error(f"Authentication error: {str(e)}")
-                raise HTTPException(status_code=400, detail=f"Authentication failed: {str(e)}")
+                user_info = await self.__repository.verify_google_token(token_request.token)
+                return VerifyTokenResponse(valid=True, user=user_info)
+            except InvalidTokenError:
+                return VerifyTokenResponse(valid=False, user=None)
+            except TokenVerificationError as e:
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @router.get("/me", response_model=UserInfo)
+        async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)):
+            """Get current authenticated user information from Google token"""
+            try:
+                # If token comes from Depends, use it; otherwise get from header
+                if not token:
+                    token = self.__get_token_from_header(request)
+                user_info = await self.__repository.verify_google_token(token)
+                return user_info
+            except (InvalidTokenError, TokenVerificationError) as e:
+                raise HTTPException(status_code=401, detail=str(e))
         
         @router.post("/logout")
         async def logout():
-            """Logout endpoint (client-side token deletion)"""
+            """Logout endpoint (client should delete token)"""
             return {"message": "Logged out successfully"}
-        
-        @router.get("/me", response_model=CurrentUser)
-        async def get_current_user(request: Request):
-            """Get current authenticated user information from token"""
-            try:
-                token = self.__get_token_from_header(request)
-                payload = self.__repository.verify_token(token)
-                
-                return CurrentUser(
-                    email=payload.email,
-                    name=payload.name,
-                    picture=payload.picture
-                )
-            except ValueError as e:
-                raise HTTPException(status_code=401, detail=str(e))
-            except Exception as e:
-                self.__logger.error(f"Token validation failed: {str(e)}")
-                raise HTTPException(status_code=401, detail="Invalid token")
         
         return router

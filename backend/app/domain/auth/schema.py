@@ -2,30 +2,18 @@ from pydantic import BaseModel, EmailStr
 
 
 class UserInfo(BaseModel):
-    """User information from OAuth provider"""
+    """User information from Google OAuth"""
     email: EmailStr
     name: str
     picture: str | None = None
 
 
-class TokenResponse(BaseModel):
-    """Response model for authentication token"""
-    access_token: str
-    token_type: str = "bearer"
-    user: UserInfo
+class VerifyTokenRequest(BaseModel):
+    """Request model for token verification"""
+    token: str
 
 
-class TokenPayload(BaseModel):
-    """JWT token payload structure"""
-    sub: EmailStr
-    email: EmailStr
-    name: str
-    picture: str | None = None
-    exp: int
-
-
-class CurrentUser(BaseModel):
-    """Current authenticated user"""
-    email: EmailStr
-    name: str
-    picture: str | None = None
+class VerifyTokenResponse(BaseModel):
+    """Response model for token verification"""
+    valid: bool
+    user: UserInfo | None = None
