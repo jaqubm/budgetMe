@@ -1,19 +1,52 @@
 [project]
 name = "budgetme_backend"
 version = "0.1.0"
-author = ["Jakub Matuszak"]
-description = "Add your description here"
+description = "Backend server for the budgetMe application, handling authentication and API endpoints."
+authors = [{name = "Jakub Matuszak", email = "jaqobgm@gmail.com"}]
 readme = "README.md"
 
 requires-python = ">=3.14"
 dependencies = [
-    "fastapi[standard]>=0.115.0",
-    "sqlmodel>=0.0.22",
-    "pydantic>=2.10.0",
+    "alembic>=1.18.3",
+    "fastapi>=0.128.3",
+    "sqlmodel>=0.0.32",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
     "uvicorn>=0.40.0",
-    "authlib>=1.6.6",
+    "authlib>=1.6.7",
     "httpx>=0.28.1",
-    "python-jose[cryptography]>=3.5.0",
-    "mypy>=1.19.1",
-    "ruff>=0.15.0",
+    "cryptography>=46.0.4",
+    "python-dotenv>=1.2.1",
+    "email-validator>=2.3.0",
+    "itsdangerous>=2.2.0",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.0",
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0"
+]
+
+[project.scripts]
+server = "app.main:main"
+
+[build-system]
+requires = ["uv_build >= 0.9.11"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "app"
+module-root = ""
+
+[tool.alembic]
+script_location = "%(here)s/alembic"
+# file_template
+# prepend_sys_path
+
+[tool.mypy]
+python_version = "3.14"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
