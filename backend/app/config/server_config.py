@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ServerConfig(BaseSettings):
+    env: str = Field(default="DEV")
     host: str = Field(default="0.0.0.0")
     port: int = Field(default=8000)
     root_path: str = Field(default="/api")

@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config.app_config import AppConfig
+from app.constants import Env, Cors
 from app.domain.auth import AuthRouter
 
 '''
@@ -48,7 +49,7 @@ class Server:
         )
         
         # CORS configuration
-        origins = self.__app_config.server_config.cors_origins.split(",")
+        origins = [Cors.ORIGIN_PROD] if self.__app_config.server_config.env.upper() == Env.PROD else Cors.ORIGINS_DEV
         
         # Middleware configuration
         app.add_middleware(
