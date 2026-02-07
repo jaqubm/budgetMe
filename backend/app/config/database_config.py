@@ -8,6 +8,7 @@ class DatabaseConfig(BaseSettings):
     """Database configuration for Azure SQL."""
     
     server: str = Field(default="localhost")
+    port: int = Field(default=1433)
     database: str = Field(default="budgetme")
     username: str = Field(default="sa")
     password: str = Field(default="YourStrong@Passw0rd")
@@ -21,7 +22,7 @@ class DatabaseConfig(BaseSettings):
     def get_sqlalchemy_url(self) -> str:
         """Generate SQLAlchemy connection URL for Azure SQL."""
         return (
-            f"mssql+pyodbc://{self.username}:{self.password}@{self.server}/"
+            f"mssql+pyodbc://{self.username}:{self.password}@{self.server}:{self.port}/"
             f"{self.database}?driver={self.driver.replace(' ', '+')}"
             f"&Encrypt={'yes' if self.encrypt else 'no'}"
             f"&TrustServerCertificate={'yes' if self.trust_server_certificate else 'no'}"
