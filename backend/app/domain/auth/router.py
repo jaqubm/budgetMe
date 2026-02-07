@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
-from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2AuthorizationCodeBearer
 
 from app.config.auth_config import AuthConfig

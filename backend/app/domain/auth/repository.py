@@ -1,4 +1,3 @@
-from typing import Dict
 import httpx
 
 from authlib.integrations.starlette_client import OAuth
