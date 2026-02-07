@@ -1,16 +1,19 @@
 """Budget model."""
 
-from datetime import date as date_type
+from datetime import datetime
 from typing import Optional
 from sqlmodel import Field, SQLModel
 
+from app.models.base import BaseSQLModel
 
-class Budget(SQLModel, table=True):
-    """Budget table for storing user budgets."""
+
+class Budget(BaseSQLModel, table=True):
+    """Budget table for storing user budget."""
     
-    __tablename__ = "budgets"
+    __tablename__ = "budget"
     
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int = Field(primary_key=True, sa_column_kwargs={"autoincrement": True})
     user_id: str = Field(index=True, max_length=255)
     name: str = Field(max_length=255)
-    date: date_type = Field(index=True)  # Will store year and month (day will be 01)
+    date: datetime = Field(index=True)
+    

@@ -43,8 +43,8 @@ module-root = ""
 
 [tool.alembic]
 script_location = "%(here)s/alembic"
-# file_template
-# prepend_sys_path
+file_template = "%%(slug)s_%%(year)d_%%(month).2d_%%(day).2d-%%(rev)s"
+prepend_sys_path = ["."]
 
 [tool.mypy]
 python_version = "3.14"

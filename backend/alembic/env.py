@@ -1,47 +1,14 @@
-from logging.config import fileConfig
-import os
-import sys
-from pathlib import Path
-
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-from dotenv import load_dotenv
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-
-# Add the parent directory to sys.path to enable imports
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-# Load environment variables
-load_dotenv()
-
-# Import your models metadata
-from app.models import metadata
 from app.config.database_config import DatabaseConfig
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+from app.models.base import BaseSQLModel
+
+database_config = DatabaseConfig()
 config = context.config
-
-# Get database URL from environment
-db_config = DatabaseConfig()
-config.set_main_option("sqlalchemy.url", db_config.get_sqlalchemy_url())
-
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
-
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = metadata
-
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
+config.set_main_option("sqlalchemy.url", database_config.get_sqlalchemy_url())
+target_metadata = BaseSQLModel.metadata
 
 
 def run_migrations_offline() -> None:
@@ -56,13 +23,12 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = db_config.get_sqlalchemy_url()
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
-        literal_binds=False,  # Changed from True to work with autogenerate
-        dialect_opts={"paramstyle": "named"},
-        compare_type=True,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"}
     )
 
     with context.begin_transaction():
@@ -76,25 +42,20 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    try:
-        connectable = engine_from_config(
-            config.get_section(config.config_ini_section, {}),
-            prefix="sqlalchemy.",
-            poolclass=pool.NullPool,
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool
+    )
+    
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata
         )
 
-        with connectable.connect() as connection:
-            context.configure(
-                connection=connection, target_metadata=target_metadata
-            )
-
-            with context.begin_transaction():
-                context.run_migrations()
-    except Exception as e:
-        # If database connection fails, run in offline mode
-        print(f"Database connection failed: {e}")
-        print("Running migrations in offline mode...")
-        run_migrations_offline()
+        with context.begin_transaction():
+            context.run_migrations()
 
 
 if context.is_offline_mode():
