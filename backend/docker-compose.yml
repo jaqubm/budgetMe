@@ -2,6 +2,7 @@ services:
   sqlserver:
     image: mcr.microsoft.com/azure-sql-edge:latest
     container_name: budgetme-sqlserver
+    user: "0:0"
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=YourStrong@Passw0rd
@@ -10,12 +11,6 @@ services:
       - "1433:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
-    healthcheck:
-      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -Q "SELECT 1" || exit 1
-      interval: 10s
-      timeout: 3s
-      retries: 10
-      start_period: 10s
 
 volumes:
   sqlserver_data:

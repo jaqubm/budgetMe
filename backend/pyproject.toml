@@ -1,5 +1,5 @@
 [project]
-name = "budgetme_backend"
+name = "budgetme-backend"
 version = "0.1.0"
 description = "Backend server for the budgetMe application, handling authentication and API endpoints."
 authors = [{name = "Jakub Matuszak", email = "jaqobgm@gmail.com"}]
@@ -32,6 +32,7 @@ dev = [
 
 [project.scripts]
 server = "app.main:main"
+init-db = "init_db:create_database_if_not_exists"
 
 [build-system]
 requires = ["uv_build >= 0.9.11"]

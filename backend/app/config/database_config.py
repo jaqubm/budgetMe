@@ -1,5 +1,6 @@
 """Database configuration."""
 
+from urllib.parse import quote_plus
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,10 +22,13 @@ class DatabaseConfig(BaseSettings):
     
     def get_sqlalchemy_url(self) -> str:
         """Generate SQLAlchemy connection URL for Azure SQL."""
-        return (
-            f"mssql+pyodbc://{self.username}:{self.password}@{self.server}:{self.port}/"
-            f"{self.database}?driver={self.driver.replace(' ', '+')}"
-            # f"&Encrypt={'yes' if self.encrypt else 'no'}"
-            # f"&TrustServerCertificate={'yes' if self.trust_server_certificate else 'no'}"
-            # f"&Connection+Timeout={self.connection_timeout}"
+        conn_str = (
+            f"DRIVER={{{self.driver}}};"
+            f"SERVER={self.server},{self.port};"
+            f"UID={self.username};"
+            f"PWD={self.password};"
+            f"TrustServerCertificate={'yes' if self.trust_server_certificate else 'no'};"
+            f"Database={self.database}"
         )
+        
+        return f"mssql+pyodbc:///?odbc_connect={quote_plus(conn_str)}"

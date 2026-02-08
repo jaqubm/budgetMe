@@ -7,6 +7,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config.app_config import AppConfig
 from app.constants import Env, Cors
 from app.domain.auth import AuthRouter
+from app.domain.health import HealthRouter
 
 '''
 Main Server for the budgetMe backend server.
@@ -65,11 +66,13 @@ class Server:
         )
         
         # Routers configuration
+        health_router = HealthRouter(path="/health").create_router()
         auth_router = AuthRouter(
             path="/auth", 
             auth_config=self.__app_config.auth_config
         ).create_router()
         
+        app.include_router(health_router)
         app.include_router(auth_router)
         
         return app
