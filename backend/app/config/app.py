@@ -2,9 +2,9 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings
 
-from app.config.server_config import ServerConfig
-from app.config.auth_config import AuthConfig
-from app.config.database_config import DatabaseConfig
+from app.config.server import ServerConfig
+from app.config.auth import AuthConfig
+from app.config.database import DatabaseConfig
 
 class AppConfig(BaseSettings):
     """Main configuration for the budgetMe backend server."""

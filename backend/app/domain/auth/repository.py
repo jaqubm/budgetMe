@@ -2,7 +2,7 @@ import httpx
 
 from authlib.integrations.starlette_client import OAuth
 
-from app.config.auth_config import AuthConfig
+from app.config.auth import AuthConfig
 from app.domain.auth.schema import UserInfo
 from app.exceptions import InvalidTokenError, TokenVerificationError
 

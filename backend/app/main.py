@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 import uvicorn
-from app.config.app_config import get_app_config
+from app.config.app import get_app_config
 from app.server import Server
 
 load_dotenv()

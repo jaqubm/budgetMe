@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.config.app_config import AppConfig
+from app.config.app import AppConfig
 from app.constants import Env, Cors
 from app.domain.auth import AuthRouter
 from app.domain.health import HealthRouter

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.security import OAuth2AuthorizationCodeBearer
 
-from app.config.auth_config import AuthConfig
+from app.config.auth import AuthConfig
 from app.domain.auth.repository import AuthRepository
 from app.domain.auth.schema import VerifyTokenRequest, VerifyTokenResponse, UserInfo
 from app.exceptions import OAuthError, InvalidTokenError, TokenVerificationError

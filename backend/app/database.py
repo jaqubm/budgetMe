@@ -4,7 +4,7 @@ from functools import lru_cache
 from typing import Generator
 from sqlalchemy import Engine
 from sqlmodel import create_engine, Session
-from app.config.app_config import get_app_config
+from app.config.app import get_app_config
 
 
 @lru_cache(maxsize=1)
