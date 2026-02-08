@@ -1,7 +1,7 @@
 from sqlalchemy import pool, create_engine
 
 from alembic import context
-from app.config.database_config import DatabaseConfig
+from backend.app.config.database import DatabaseConfig
 
 from app.models.base import BaseSQLModel
 

@@ -2,7 +2,7 @@
 
 import time
 import pyodbc
-from app.config.database_config import DatabaseConfig
+from app.config.database import DatabaseConfig
 
 
 def create_database_if_not_exists():
