@@ -1,8 +1,7 @@
 """Budget model."""
 
 from datetime import datetime
-from typing import Optional
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field
 
 from app.models.base import BaseSQLModel
 
