@@ -1,4 +1,4 @@
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, create_engine
 
 from alembic import context
 from app.config.database_config import DatabaseConfig
@@ -6,8 +6,6 @@ from app.config.database_config import DatabaseConfig
 from app.models.base import BaseSQLModel
 
 database_config = DatabaseConfig()
-config = context.config
-config.set_main_option("sqlalchemy.url", database_config.get_sqlalchemy_url())
 target_metadata = BaseSQLModel.metadata
 
 
@@ -23,7 +21,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = database_config.get_sqlalchemy_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -42,9 +40,9 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    # Create engine directly from database config to avoid ConfigParser issues
+    connectable = create_engine(
+        database_config.get_sqlalchemy_url(),
         poolclass=pool.NullPool
     )
     

@@ -9,15 +9,8 @@ def create_database_if_not_exists():
     """Create the budgetme database if it doesn't exist."""
     config = DatabaseConfig()
     
-    # Connection string to master database (without specific database)
-    connection_string = (
-        f"DRIVER={{{config.driver}}};"
-        f"SERVER={config.server},{config.port};"
-        f"UID={config.username};"
-        f"PWD={config.password};"
-        f"TrustServerCertificate=yes;"
-        f"Database=master"
-    )
+    # Use master database to create new databases
+    connection_string = config.get_odbc_connection_string(database="master")
     
     max_retries = 10
     retry_delay = 3
@@ -28,7 +21,6 @@ def create_database_if_not_exists():
             conn = pyodbc.connect(connection_string, timeout=30, autocommit=True)
             cursor = conn.cursor()
             
-            # Check if database exists
             cursor.execute(
                 "SELECT name FROM sys.databases WHERE name = ?",
                 (config.database,)

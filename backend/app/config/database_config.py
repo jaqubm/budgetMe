@@ -20,15 +20,27 @@ class DatabaseConfig(BaseSettings):
     
     model_config = SettingsConfigDict(env_prefix="DATABASE_", env_file=".env", extra="ignore")
     
-    def get_sqlalchemy_url(self) -> str:
-        """Generate SQLAlchemy connection URL for Azure SQL."""
-        conn_str = (
+    def get_odbc_connection_string(self, database: str | None = None) -> str:
+        """
+        Generate ODBC connection string.
+        
+        Args:
+            database: Database name to connect to. If None, uses the configured database.
+        
+        Returns:
+            ODBC connection string
+        """
+        db_name = database if database is not None else self.database
+        return (
             f"DRIVER={{{self.driver}}};"
             f"SERVER={self.server},{self.port};"
             f"UID={self.username};"
             f"PWD={self.password};"
             f"TrustServerCertificate={'yes' if self.trust_server_certificate else 'no'};"
-            f"Database={self.database}"
+            f"Database={db_name}"
         )
-        
+    
+    def get_sqlalchemy_url(self) -> str:
+        """Generate SQLAlchemy connection URL for Azure SQL."""
+        conn_str = self.get_odbc_connection_string()
         return f"mssql+pyodbc:///?odbc_connect={quote_plus(conn_str)}"
