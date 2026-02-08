@@ -24,7 +24,7 @@ class DatabaseConfig(BaseSettings):
         return (
             f"mssql+pyodbc://{self.username}:{self.password}@{self.server}:{self.port}/"
             f"{self.database}?driver={self.driver.replace(' ', '+')}"
-            f"&Encrypt={'yes' if self.encrypt else 'no'}"
-            f"&TrustServerCertificate={'yes' if self.trust_server_certificate else 'no'}"
-            f"&Connection+Timeout={self.connection_timeout}"
+            # f"&Encrypt={'yes' if self.encrypt else 'no'}"
+            # f"&TrustServerCertificate={'yes' if self.trust_server_certificate else 'no'}"
+            # f"&Connection+Timeout={self.connection_timeout}"
         )
