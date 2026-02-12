@@ -3,6 +3,8 @@ import importlib
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from alembic.config import Config
+from alembic import context
 
 from app.config.app import AppConfig
 from app.constants import Env, Cors
@@ -16,13 +18,17 @@ Main Server for the budgetMe backend server.
 class Server:
     def __init__(self, app_config: AppConfig):
         self.__app_config: AppConfig = app_config
+    
+    def __db_migrations(self):
+        """Run database migrations on startup."""
+        pass
         
     def __lifespan(self):
         """Lifespan event handler for startup and shutdown events."""
         @asynccontextmanager
         async def lifespan(app: FastAPI):
             # Startup logic
-            # self.__do_db_migrations()
+            self.__db_migrations()
             
             yield
             

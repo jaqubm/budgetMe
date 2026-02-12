@@ -17,7 +17,7 @@ class HealthRouter:
         """Create and configure the health check router"""
         router = APIRouter(prefix=self.__path, tags=["health"])
         
-        @router.get("", response_model=HealthResponse, status_code=status.HTTP_200_OK)
+        @router.get(path="", response_model=HealthResponse, status_code=status.HTTP_200_OK)
         async def health_check(repository: HealthRepository = Depends(get_health_repository)):
             """
             Health check endpoint that verifies database connectivity.
