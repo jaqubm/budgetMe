@@ -1,11 +1,11 @@
 from dotenv import load_dotenv
 import uvicorn
-from app.config.app import get_app_config
+from app.config.app import AppConfig, get_app_config
 from app.server import Server
 
 load_dotenv()
 
-_app_config = get_app_config()
+_app_config: AppConfig = get_app_config()
 app = Server(app_config=_app_config).create_server()
 
 
@@ -23,4 +23,3 @@ def main():
 if __name__ == "__main__":
     """uv run server"""
     main()
-    
