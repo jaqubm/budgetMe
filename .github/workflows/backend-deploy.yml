@@ -33,6 +33,8 @@ jobs:
       - name: Export dependencies to requirements.txt
         run: |
           uv export --no-dev --no-hashes --output-file requirements.txt
+          # Remove any references to local project
+          sed -i '/^-e\s/d; /^\.\/backend/d; /^file:\/\//d' requirements.txt
       
       - name: Prepare deployment package
         working-directory: ./backend
