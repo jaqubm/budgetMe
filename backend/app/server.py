@@ -1,5 +1,4 @@
 from contextlib import asynccontextmanager
-import importlib
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -40,7 +39,7 @@ class Server:
         app = FastAPI(
             title="budgetMe API",
             description="Backend server for the budgetMe application, handling authentication and API endpoints.",
-            version=importlib.metadata.version("budgetme-backend"),
+            version="0.1.0",
             lifespan=self.__lifespan(),
             docs_url="/docs",
             redoc_url="/redoc",
