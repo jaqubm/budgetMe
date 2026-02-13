@@ -26,17 +26,6 @@ jobs:
         uses: actions/setup-python@v6.2.0
         with:
           python-version: '3.14'
-
-      - name: Install Poetry
-        working-directory: ./backend
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-      
-      - name: Generate poetry.lock
-        working-directory: ./backend
-        run: |
-          poetry lock
       
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v6.0.0

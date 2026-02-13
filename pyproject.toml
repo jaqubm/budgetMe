@@ -1,2 +1,2 @@
-[tool.uv.workspace]
+[tool.poetry.workspace]
 members = ["backend"]

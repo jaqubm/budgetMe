@@ -1,13 +1,13 @@
 {
   "name": "budgetme_frontend",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "frontend:dev": "npm --prefix frontend run dev",
     "frontend:build": "npm --prefix frontend run build",
     "frontend:preview": "npm --prefix frontend run preview",
     "frontend:lint": "npm --prefix frontend run lint",
-    "backend:dev": "cd backend && uv run fastapi dev main.py",
+    "backend:dev": "cd backend && poetry run server",
     "dev": "npm run frontend:dev"
   }
 }
