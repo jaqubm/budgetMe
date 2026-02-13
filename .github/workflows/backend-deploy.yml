@@ -34,17 +34,24 @@ jobs:
         run: |
           uv export --no-dev --no-hashes --output-file requirements.txt
       
+      - name: Prepare deployment package
+        working-directory: ./backend
+        run: |
+          mkdir -p ../deploy-package
+          cp -r * ../deploy-package/
+          cp -r .[!.]* ../deploy-package/ 2>/dev/null || true
+      
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v6.0.0
         with:
           name: python-app
           path: |
-            ./
-            !.venv/
-            !__pycache__/
-            !**/__pycache__/
-            !.ruff_cache/
-            !.mypy_cache/
+            deploy-package/
+            !deploy-package/.venv/
+            !deploy-package/__pycache__/
+            !deploy-package/**/__pycache__/
+            !deploy-package/.ruff_cache/
+            !deploy-package/.mypy_cache/
 
   deploy:
     runs-on: ubuntu-latest
