@@ -1,0 +1,76 @@
+name: Build and Deploy budgetMe Backend to Azure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-deploy.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Set up Python version
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: '3.14'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7.3.0
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          uv sync --no-dev
+      
+      - name: Create requirements.txt for Azure Oryx
+        working-directory: ./backend
+        run: |
+          uv pip freeze > requirements.txt
+      
+      - name: Upload artifact for deployment
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: python-app
+          path: |
+            backend/
+            !backend/.venv/
+            !backend/__pycache__/
+            !backend/**/__pycache__/
+            !backend/.ruff_cache/
+            !backend/.mypy_cache/
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v7.0.0
+        with:
+          name: python-app
+      
+      - name: Login to Azure
+        uses: azure/login@v2.3.0
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_360EA64042124377BEBE5371104D2C33 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C39B96A982D04366B2495041D7D0CD6F }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F37BABEC67764EFCA3469A7F4DC68A09 }}
+
+      - name: 'Deploy to Azure Web App'
+        uses: azure/webapps-deploy@v2.2.17
+        id: deploy-to-webapp
+        with:
+          app-name: 'budgetMe-backend'
+          slot-name: 'Production'
