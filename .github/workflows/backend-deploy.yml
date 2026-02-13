@@ -33,18 +33,24 @@ jobs:
       - name: Export dependencies to requirements.txt
         run: |
           uv export --no-dev --no-hashes --output-file requirements.txt
+          echo "Original requirements.txt:"
+          cat requirements.txt
+          # Remove lines referencing the local project
+          sed -i '/^-e \./d; /^\.\/backend/d; /^file:\/\//d' requirements.txt
+          echo "Filtered requirements.txt:"
+          cat requirements.txt
       
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v6.0.0
         with:
           name: python-app
           path: |
-            backend/
-            !backend/.venv/
-            !backend/__pycache__/
-            !backend/**/__pycache__/
-            !backend/.ruff_cache/
-            !backend/.mypy_cache/
+            ./
+            !.venv/
+            !__pycache__/
+            !**/__pycache__/
+            !.ruff_cache/
+            !.mypy_cache/
 
   deploy:
     runs-on: ubuntu-latest
