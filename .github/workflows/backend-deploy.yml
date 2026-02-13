@@ -33,12 +33,6 @@ jobs:
       - name: Export dependencies to requirements.txt
         run: |
           uv export --no-dev --no-hashes --output-file requirements.txt
-          echo "Original requirements.txt:"
-          cat requirements.txt
-          # Remove lines referencing the local project
-          sed -i '/^-e \./d; /^\.\/backend/d; /^file:\/\//d' requirements.txt
-          echo "Filtered requirements.txt:"
-          cat requirements.txt
       
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v6.0.0
