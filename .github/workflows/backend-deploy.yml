@@ -38,17 +38,16 @@ jobs:
         run: |
           poetry lock
       
+      - name: Prepare deployment directory
+        run: |
+          mkdir -p deploy
+          cp -r backend/* deploy/
+      
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v6.0.0
         with:
           name: python-app
-          path: |
-            backend/
-            !backend/.venv/
-            !backend/__pycache__/
-            !backend/**/__pycache__/
-            !backend/.ruff_cache/
-            !backend/.mypy_cache/
+          path: deploy/
 
   deploy:
     runs-on: ubuntu-latest
@@ -76,4 +75,4 @@ jobs:
         with:
           app-name: 'budgetMe-backend'
           slot-name: 'Production'
-          startup-command: 'cd backend && poetry run server'
+          startup-command: 'poetry run server'
