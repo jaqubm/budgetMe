@@ -30,30 +30,20 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7.3.0
       
-      - name: Export dependencies to requirements.txt
+      - name: Install dependencies
         run: |
-          uv export --no-dev --no-hashes --output-file requirements.txt
-          # Remove any references to local project
-          sed -i '/^-e\s/d; /^\.\/backend/d; /^file:\/\//d' requirements.txt
-      
-      - name: Prepare deployment package
-        working-directory: ./backend
-        run: |
-          mkdir -p ../deploy-package
-          cp -r * ../deploy-package/
-          cp -r .[!.]* ../deploy-package/ 2>/dev/null || true
+          uv sync --no-dev
       
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v6.0.0
         with:
           name: python-app
           path: |
-            deploy-package/
-            !deploy-package/.venv/
-            !deploy-package/__pycache__/
-            !deploy-package/**/__pycache__/
-            !deploy-package/.ruff_cache/
-            !deploy-package/.mypy_cache/
+            backend/
+            !backend/__pycache__/
+            !backend/**/__pycache__/
+            !backend/.ruff_cache/
+            !backend/.mypy_cache/
 
   deploy:
     runs-on: ubuntu-latest
@@ -81,4 +71,4 @@ jobs:
         with:
           app-name: 'budgetMe-backend'
           slot-name: 'Production'
-          startup-command: 'python -m uvicorn app.main:app --host 0.0.0.0 --port 8000'
+          startup-command: 'cd backend && .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000'
