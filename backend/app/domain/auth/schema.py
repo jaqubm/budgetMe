@@ -8,11 +8,6 @@ class UserInfo(BaseModel):
     picture: str | None = None
 
 
-class VerifyTokenRequest(BaseModel):
-    """Request model for token verification"""
-    token: str
-
-
 class VerifyTokenResponse(BaseModel):
     """Response model for token verification"""
     valid: bool

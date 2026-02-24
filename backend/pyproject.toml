@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Backend server for the budgetMe application, handling authentication and API endpoints."
 authors = ["Jakub Matuszak <jaqobgm@gmail.com>"]
 readme = "README.md"
+packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
 python = "^3.14"
