@@ -1,6 +1,7 @@
 """Budget model."""
 
 from datetime import datetime
+from typing import Optional
 from sqlmodel import Field
 
 from app.models.base import BaseSQLModel
@@ -11,8 +12,10 @@ class Budget(BaseSQLModel, table=True):
     
     __tablename__ = "budget"
     
-    id: int = Field(primary_key=True, sa_column_kwargs={"autoincrement": True})
+    id: int = Field(primary_key=True, sa_column_kwargs={"autoincrement": True}) 
     user_id: str = Field(index=True, max_length=255)
     name: str = Field(max_length=255)
     date: datetime = Field(index=True)
+    value: float = Field(default=0.0)
     
+    category_id: int = Field(index=True, foreign_key="category.id")

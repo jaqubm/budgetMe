@@ -3,6 +3,7 @@
 from sqlmodel import SQLModel
 
 # Import all models here for Alembic autogenerate
+from app.models.category import Category
 from app.models.budget import Budget
 
 # This is the metadata that Alembic will use for autogenerate

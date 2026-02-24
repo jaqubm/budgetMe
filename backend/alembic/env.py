@@ -1,9 +1,10 @@
 from sqlalchemy import pool, create_engine
 
 from alembic import context
-from backend.app.config.database import DatabaseConfig
+from app.config.database import DatabaseConfig
 
 from app.models.base import BaseSQLModel
+import app.models  # noqa: F401 — ensures all models are registered for autogenerate
 
 database_config = DatabaseConfig()
 target_metadata = BaseSQLModel.metadata

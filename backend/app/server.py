@@ -72,10 +72,7 @@ class Server:
         
         # Routers configuration
         health_router = HealthRouter(path="/health").create_router()
-        auth_router = AuthRouter(
-            path="/auth", 
-            auth_config=self.__app_config.auth_config
-        ).create_router()
+        auth_router = AuthRouter(path="/auth").create_router()
         
         app.include_router(health_router)
         app.include_router(auth_router)

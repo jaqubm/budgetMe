@@ -1,15 +1,11 @@
 import httpx
 
-from app.config.auth import AuthConfig
 from app.domain.auth.schema import UserInfo
 from app.exceptions import InvalidTokenError, TokenVerificationError
 
 
 class AuthRepository:
     """Repository for authentication operations using Google OAuth tokens"""
-
-    def __init__(self, auth_config: AuthConfig):
-        self.__auth_config = auth_config
 
     async def verify_google_token(self, token: str) -> UserInfo:
         """Verify a Google access token via the userinfo endpoint and return user info."""

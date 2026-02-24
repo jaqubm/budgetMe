@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2AuthorizationCodeBearer
 
-from app.config.auth import AuthConfig
 from app.domain.auth.repository import AuthRepository
 from app.domain.auth.schema import VerifyTokenResponse, UserInfo
 from app.exceptions import InvalidTokenError, TokenVerificationError
@@ -10,10 +9,9 @@ from app.exceptions import InvalidTokenError, TokenVerificationError
 class AuthRouter:
     """Router for authentication endpoints using Google OAuth tokens"""
     
-    def __init__(self, path: str, auth_config: AuthConfig):
+    def __init__(self, path: str):
         self.__path: str = path
-        self.__auth_config = auth_config
-        self.__repository = AuthRepository(auth_config)
+        self.__repository = AuthRepository()
     
     def create_router(self) -> APIRouter:
         """Create and configure the authentication router"""
