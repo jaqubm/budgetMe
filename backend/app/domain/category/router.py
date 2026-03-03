@@ -28,8 +28,9 @@ class CategoryRouter:
             repository: CategoryRepository = Depends(get_category_repository),
         ):
             """
-            Return all categories created by the user, optionally filtered by type
-            (income | expense | saving).
+            Return all categories created by the user, optionally filtered by `category_type`.
+
+            Accepted values for `category_type`: `income`, `expense`, `saving`.
             """
             return repository.get_categories(user_id, category_type)
 

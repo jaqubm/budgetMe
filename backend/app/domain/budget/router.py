@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.dependencies import get_budget_repository, get_current_user_id
 from app.domain.budget.repository import BudgetRepository
@@ -31,13 +31,15 @@ class BudgetRouter:
 
             The category identified by (category_name, category_type) is looked up for
             the current user and created automatically if it does not yet exist.
+
+            Accepted values for `category_type`: `income`, `expense`, `saving`.
             """
             return repository.create_budget(user_id, data)
 
         @router.get("", response_model=list[BudgetResponse], status_code=status.HTTP_200_OK)
         async def get_budgets(
-            year: int,
-            month: int,
+            year: int = Query(..., ge=1900, le=2100, description="Calendar year (1900–2100)"),
+            month: int = Query(..., ge=1, le=12, description="Calendar month (1–12)"),
             category_type: Optional[CategoryType] = None,
             user_id: str = Depends(get_current_user_id),
             repository: BudgetRepository = Depends(get_budget_repository),
@@ -45,7 +47,7 @@ class BudgetRouter:
             """
             Return all budgets for the authenticated user in the given year/month.
 
-            Optionally filter by category type (income | expense | saving).
+            Optionally filter by `category_type`. Accepted values: `income`, `expense`, `saving`.
             """
             return repository.get_budgets(user_id, year, month, category_type)
 
@@ -60,8 +62,10 @@ class BudgetRouter:
             Update an existing budget entry.
 
             Only the fields present in the request body are modified.
-            If category_name or category_type is provided, the matching category is
+            If `category_name` or `category_type` is provided, the matching category is
             looked up (or created) for the current user.
+
+            Accepted values for `category_type`: `income`, `expense`, `saving`.
             """
             try:
                 return repository.update_budget(budget_id, user_id, data)
