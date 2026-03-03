@@ -38,7 +38,7 @@ class BudgetRouter:
 
         @router.get("", response_model=list[BudgetResponse], status_code=status.HTTP_200_OK)
         async def get_budgets(
-            year: int = Query(..., ge=1900, le=2100, description="Calendar year (1900–2100)"),
+            year: int = Query(..., ge=2000, le=2100, description="Calendar year (2000–2100)"),
             month: int = Query(..., ge=1, le=12, description="Calendar month (1–12)"),
             category_type: Optional[CategoryType] = None,
             user_id: str = Depends(get_current_user_id),

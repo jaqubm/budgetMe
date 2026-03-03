@@ -8,7 +8,7 @@ from app.models.category import CategoryType
 
 PositiveId = Annotated[int, Field(gt=0, description="Database primary key")]
 Name = Annotated[str, Field(min_length=1, max_length=255, description="Non-empty name")]
-Year = Annotated[int, Field(ge=1900, le=2100, description="Calendar year (1900\u20132100)")]
+Year = Annotated[int, Field(ge=2000, le=2100, description="Calendar year (2000\u20132100)")]
 Month = Annotated[int, Field(ge=1, le=12, description="Calendar month (1\u201312)")]
 
 
