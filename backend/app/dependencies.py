@@ -1,14 +1,20 @@
 """Application dependencies for FastAPI dependency injection."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2AuthorizationCodeBearer
 from sqlmodel import Session
 
 from app.database import get_session
-from app.domain.health.repository import HealthRepository
-from app.domain.budget.repository import BudgetRepository
-from app.domain.category.repository import CategoryRepository
 from app.exceptions import InvalidTokenError, TokenVerificationError
+
+if TYPE_CHECKING:
+    from app.domain.health.repository import HealthRepository
+    from app.domain.category.repository import CategoryRepository
+    from app.domain.budget.repository import BudgetRepository
 
 oauth2_scheme = OAuth2AuthorizationCodeBearer(
     authorizationUrl="https://accounts.google.com/o/oauth2/v2/auth",
@@ -43,13 +49,15 @@ async def get_current_user_id(token: str = Depends(oauth2_scheme)) -> str:
 def get_health_repository(session: Session = Depends(get_session)) -> HealthRepository:
     """
     Dependency function to get HealthRepository instance.
-    
+
     Args:
         session: Database session from dependency injection
-        
+
     Returns:
         HealthRepository: Repository instance
     """
+    from app.domain.health.repository import HealthRepository
+
     return HealthRepository(session)
 
 
@@ -63,6 +71,8 @@ def get_category_repository(session: Session = Depends(get_session)) -> Category
     Returns:
         CategoryRepository: Repository instance
     """
+    from app.domain.category.repository import CategoryRepository
+
     return CategoryRepository(session)
 
 
@@ -80,4 +90,6 @@ def get_budget_repository(
     Returns:
         BudgetRepository: Repository instance
     """
+    from app.domain.budget.repository import BudgetRepository
+
     return BudgetRepository(session, category_repository)
