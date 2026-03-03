@@ -28,7 +28,7 @@ budgetMe/
 
 ### Prerequisites
 - Node.js 18+ (for frontend)
-- Python 3.14+ and uv (for backend)
+- Python 3.14+ and Poetry (for backend)
 - Docker (for SQL Server)
 
 ### Setup and Run
@@ -37,11 +37,11 @@ budgetMe/
 ```bash
 cd backend
 docker compose up -d              # Start database
-uv sync --group dev               # Install dependencies
+poetry install                    # Install dependencies
 cp .env.template .env             # Configure (add Google OAuth credentials)
-uv run init-db                    # Initialize database
-uv run alembic upgrade head       # Run migrations
-uv run server                     # Start server → http://localhost:8000
+poetry run init-db                # Initialize database
+poetry run alembic upgrade head   # Run migrations
+poetry run server                 # Start server → http://localhost:8000
 ```
 
 📖 **Detailed backend documentation:** [backend/README.md](backend/README.md)
@@ -71,12 +71,42 @@ npm run frontend:dev              # Start frontend
 - 📚 **API Documentation:** Interactive Swagger UI at `/docs`
 - ⚡ **Hot Reload:** Both frontend and backend support hot module replacement
 
-## API Documentation
+## API Endpoints
 
-Once the backend is running:
-- **Swagger UI:** http://localhost:8000/docs
-- **ReDoc:** http://localhost:8000/redoc
-- **Health Check:** http://localhost:8000/health
+Base URL: `http://localhost:8000`
+
+All endpoints except `/health` require a Google OAuth2 Bearer token (`Authorization: Bearer <token>`).
+
+> `category_type` values: `income` | `expense` | `saving`
+
+### Health
+| Method | Path | Response |
+|---|---|---|
+| `GET` | `/health` | `200 { status, database, message }` |
+
+### Auth
+| Method | Path | Response |
+|---|---|---|
+| `POST` | `/auth/verify` | `200 { valid, user? }` |
+| `GET` | `/auth/me` | `200 { email, name, picture? }` |
+
+### Budget
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/budget` | Create budget entry |
+| `GET` | `/budget?year&month[&category_type]` | List budgets for a given month |
+| `PATCH` | `/budget/{id}` | Partial update |
+| `DELETE` | `/budget/{id}` | Delete budget entry |
+
+### Category
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/category[?category_type]` | List user categories |
+| `GET` | `/category/{id}/budget-dates` | Months where category is used |
+| `PATCH` | `/category/{id}` | Rename category |
+| `DELETE` | `/category/{id}` | Delete category + all its budgets |
+
+📖 Full request/response details: [backend/README.md](backend/README.md#api-reference)
 
 ## Development Workflow
 

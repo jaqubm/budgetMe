@@ -87,6 +87,78 @@ The API is available at <http://localhost:8000>.
 | <http://localhost:8000/redoc> | ReDoc |
 | <http://localhost:8000/health> | Health check |
 
+## API Reference
+
+All endpoints (except `/health`) require a Google OAuth2 Bearer token in the `Authorization` header.
+
+> `category_type` accepted values: `income` | `expense` | `saving`
+
+---
+
+### Health — `/health`
+
+| Method | Path | Auth | Request | Response `200` |
+|---|---|---|---|---|
+| `GET` | `/health` | — | — | `{ status, database, message }` |
+
+---
+
+### Auth — `/auth`
+
+| Method | Path | Auth | Request | Response |
+|---|---|---|---|---|
+| `POST` | `/auth/verify` | Bearer token | — | `200 { valid, user? }` |
+| `GET` | `/auth/me` | Bearer token | — | `200 { email, name, picture? }` |
+
+---
+
+### Budget — `/budget`
+
+| Method | Path | Auth | Request | Response |
+|---|---|---|---|---|
+| `POST` | `/budget` | ✓ | **Body:** `{ name, year, month, value?, category_name, category_type }` | `201 BudgetResponse` |
+| `GET` | `/budget` | ✓ | **Query:** `year` (2000–2100), `month` (1–12), `category_type?` | `200 BudgetResponse[]` |
+| `PATCH` | `/budget/{id}` | ✓ | **Body (all optional):** `{ name?, year?, month?, value?, category_name?, category_type? }` | `200 BudgetResponse` |
+| `DELETE` | `/budget/{id}` | ✓ | — | `204 No Content` |
+
+**BudgetResponse:**
+```json
+{
+  "id": 1,
+  "name": "Salary",
+  "year": 2026,
+  "month": 3,
+  "value": 5000.0,
+  "category": {
+    "id": 1,
+    "name": "Work",
+    "type": "income"
+  }
+}
+```
+
+---
+
+### Category — `/category`
+
+| Method | Path | Auth | Request | Response |
+|---|---|---|---|---|
+| `GET` | `/category` | ✓ | **Query:** `category_type?` | `200 CategoryResponse[]` |
+| `GET` | `/category/{id}/budget-dates` | ✓ | — | `200 { year, month }[]` |
+| `PATCH` | `/category/{id}` | ✓ | **Body:** `{ name }` | `200 CategoryResponse` |
+| `DELETE` | `/category/{id}` | ✓ | — | `204 No Content` (cascades to budgets) |
+
+**CategoryResponse:**
+```json
+{
+  "id": 1,
+  "name": "Work",
+  "type": "income"
+}
+```
+
+---
+
 ## Database Migrations
 
 **Create a new migration** (after changing a model):
