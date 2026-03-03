@@ -2,7 +2,6 @@
 
 from typing import Optional
 
-from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.domain.budget.schema import BudgetCreate, BudgetResponse, BudgetUpdate, CategoryInfo
@@ -24,7 +23,8 @@ class BudgetRepository:
         return BudgetResponse(
             id=budget.id,
             name=budget.name,
-            date=budget.date,
+            year=budget.year,
+            month=budget.month,
             value=budget.value,
             category=CategoryInfo(id=category.id, name=category.name, type=category.type),
         )
@@ -47,7 +47,8 @@ class BudgetRepository:
         budget = Budget(
             user_id=user_id,
             name=data.name,
-            date=data.date,
+            year=data.year,
+            month=data.month,
             value=data.value,
             category_id=category.id,
         )
@@ -82,8 +83,8 @@ class BudgetRepository:
             .join(Category, col(Budget.category_id) == col(Category.id))
             .where(
                 Budget.user_id == user_id,
-                func.extract("year", col(Budget.date)) == year,
-                func.extract("month", col(Budget.date)) == month,
+                Budget.year == year,
+                Budget.month == month,
             )
         )
         if category_type is not None:
@@ -118,8 +119,10 @@ class BudgetRepository:
 
         if data.name is not None:
             budget.name = data.name
-        if data.date is not None:
-            budget.date = data.date
+        if data.year is not None:
+            budget.year = data.year
+        if data.month is not None:
+            budget.month = data.month
         if data.value is not None:
             budget.value = data.value
 

@@ -80,19 +80,19 @@ class CategoryRepository:
         if category.user_id != user_id:
             raise UnauthorizedError("You don't have permission to access this category")
 
-        statement = select(Budget.date).where(
+        statement = select(Budget.year, Budget.month).where(
             Budget.category_id == category_id,
             Budget.user_id == user_id,
         )
-        dates = self.__session.exec(statement).all()
+        rows = self.__session.exec(statement).all()
 
         seen: set[tuple[int, int]] = set()
         result: list[BudgetDateResponse] = []
-        for d in dates:
-            key = (d.year, d.month)
+        for year, month in rows:
+            key = (year, month)
             if key not in seen:
                 seen.add(key)
-                result.append(BudgetDateResponse(year=d.year, month=d.month))
+                result.append(BudgetDateResponse(year=year, month=month))
         return sorted(result, key=lambda x: (x.year, x.month))
 
     def update_category(
