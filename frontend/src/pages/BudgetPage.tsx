@@ -2,16 +2,18 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getBudgets, deleteBudget, createBudget } from '@/api/budget'
+import { getCategories } from '@/api/category'
 import { formatCurrency, getMonthName, shiftMonth } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { CategoryCombobox } from '@/components/ui/CategoryCombobox'
 import { Spinner } from '@/components/ui/Spinner'
 import { TypeBadge } from '@/components/ui/TypeBadge'
 import { LogoWordmark } from '@/components/ui/Logo'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuthStore } from '@/store/authStore'
 import { useNavigate } from 'react-router-dom'
-import type { CategoryType, BudgetResponse } from '@/types/api'
+import type { CategoryType, BudgetResponse, CategoryResponse } from '@/types/api'
 
 const SECTION_ORDER: CategoryType[] = ['income', 'expense', 'saving']
 
@@ -196,18 +198,20 @@ function BudgetSection({ type, year, month }: BudgetSectionProps) {
             <span className="text-text-dim text-sm">No entries yet</span>
           </div>
         ) : (
-          <ul className="divide-y divide-border-subtle">
+          <div className="divide-y divide-border-subtle">
             <AnimatePresence initial={false}>
-              {items.map((item) => (
-                <BudgetItem
-                  key={item.id}
-                  item={item}
-                  onDelete={() => deleteMutation.mutate(item.id)}
-                  deleting={deleteMutation.isPending && deleteMutation.variables === item.id}
+              {groupByCategory(items).map(({ categoryName, subtotal, entries }) => (
+                <CategoryGroup
+                  key={categoryName}
+                  categoryName={categoryName}
+                  subtotal={subtotal}
+                  entries={entries}
+                  onDelete={(id) => deleteMutation.mutate(id)}
+                  deletingId={deleteMutation.isPending ? deleteMutation.variables : undefined}
                 />
               ))}
             </AnimatePresence>
-          </ul>
+          </div>
         )}
 
         {/* Inline add form */}
@@ -251,6 +255,71 @@ function BudgetSection({ type, year, month }: BudgetSectionProps) {
   )
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+interface CategoryGroup {
+  categoryName: string
+  subtotal: number
+  entries: BudgetResponse[]
+}
+
+function groupByCategory(items: BudgetResponse[]): CategoryGroup[] {
+  const map = new Map<string, BudgetResponse[]>()
+  for (const item of items) {
+    const key = item.category.name
+    const group = map.get(key) ?? []
+    group.push(item)
+    map.set(key, group)
+  }
+  return Array.from(map.entries()).map(([categoryName, entries]) => ({
+    categoryName,
+    subtotal: entries.reduce((s, e) => s + e.value, 0),
+    entries,
+  }))
+}
+
+// ── Category Group ────────────────────────────────────────────────────────────
+interface CategoryGroupProps {
+  categoryName: string
+  subtotal: number
+  entries: BudgetResponse[]
+  onDelete: (id: number) => void
+  deletingId: number | undefined
+}
+
+function CategoryGroup({ categoryName, subtotal, entries, onDelete, deletingId }: CategoryGroupProps) {
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+    >
+      {/* Category header row */}
+      <div className="flex items-center justify-between px-5 py-2 bg-surface-raised border-b border-border-subtle">
+        <span className="text-xs font-semibold text-text-muted uppercase tracking-wider truncate">
+          {categoryName}
+        </span>
+        <span className="font-num text-xs text-text-dim flex-shrink-0 ml-3">
+          {formatCurrency(subtotal)}
+        </span>
+      </div>
+
+      {/* Entries under this category */}
+      <ul>
+        {entries.map((item) => (
+          <BudgetItem
+            key={item.id}
+            item={item}
+            onDelete={() => onDelete(item.id)}
+            deleting={deletingId === item.id}
+          />
+        ))}
+      </ul>
+    </motion.div>
+  )
+}
+
 // ── Budget Item ───────────────────────────────────────────────────────────────
 interface BudgetItemProps {
   item: BudgetResponse
@@ -266,12 +335,10 @@ function BudgetItem({ item, onDelete, deleting }: BudgetItemProps) {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 8 }}
       transition={{ duration: 0.18 }}
-      className="group flex items-center gap-3 px-5 py-3 hover:bg-surface-raised transition-colors"
+      className="group flex items-center gap-3 px-5 py-2.5 hover:bg-surface-raised transition-colors"
     >
-      {/* Left accent bar (category colour inherited from parent border) */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-text truncate">{item.name}</p>
-        <p className="text-xs text-text-muted truncate">{item.category.name}</p>
+        <p className="text-sm text-text truncate">{item.name}</p>
       </div>
 
       <span className="font-num text-sm font-medium text-text flex-shrink-0">
@@ -305,6 +372,11 @@ function AddBudgetForm({ type, year, month, onClose, onSaved }: AddBudgetFormPro
   const [value, setValue] = useState('')
   const [error, setError] = useState<string | null>(null)
 
+  const { data: categories = [] } = useQuery<CategoryResponse[]>({
+    queryKey: ['categories', type],
+    queryFn: () => getCategories(type),
+  })
+
   const mutation = useMutation({
     mutationFn: createBudget,
     onSuccess: onSaved,
@@ -313,10 +385,8 @@ function AddBudgetForm({ type, year, month, onClose, onSaved }: AddBudgetFormPro
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim() || !categoryName.trim()) {
-      setError('Name and category are required.')
-      return
-    }
+    if (!name.trim()) { setError('Entry name is required.'); return }
+    if (!categoryName.trim()) { setError('Please select or enter a category.'); return }
     setError(null)
     mutation.mutate({
       name: name.trim(),
@@ -341,12 +411,13 @@ function AddBudgetForm({ type, year, month, onClose, onSaved }: AddBudgetFormPro
         onChange={(e) => setName(e.target.value)}
         name="name"
       />
-      <Input
-        placeholder="Category (e.g. Housing)"
+
+      <CategoryCombobox
+        categories={categories}
         value={categoryName}
-        onChange={(e) => setCategoryName(e.target.value)}
-        name="categoryName"
+        onChange={setCategoryName}
       />
+
       <Input
         type="number"
         placeholder="Value (0.00)"

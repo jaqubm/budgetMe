@@ -20,6 +20,7 @@ export function Input({ className, ...props }: InputProps) {
         'w-full h-9 px-3 bg-bg border border-border rounded-sm text-sm text-text placeholder:text-text-dim',
         'focus:outline-none focus:border-text-muted transition-colors duration-150',
         'disabled:opacity-40 disabled:cursor-not-allowed',
+        '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
         className,
       )}
       {...props}
