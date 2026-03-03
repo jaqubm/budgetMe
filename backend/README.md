@@ -373,6 +373,7 @@ All endpoints are accessible under the `/api` root path (configurable via `SERVE
 | GET | `/health` | — | 200 | Returns service + database status |
 
 **Response `200`**
+
 ```json
 {
   "status": "healthy",
@@ -397,6 +398,7 @@ All endpoints are accessible under the `/api` root path (configurable via `SERVE
 | GET | `/auth/me` | Bearer token | 200 | Return the authenticated user's profile |
 
 **Response `200` — `POST /auth/verify`**
+
 ```json
 {
   "valid": true,
@@ -407,9 +409,11 @@ All endpoints are accessible under the `/api` root path (configurable via `SERVE
   }
 }
 ```
+
 When the token is invalid, `valid` is `false` and `user` is `null`.
 
 **Response `200` — `GET /auth/me`**
+
 ```json
 {
   "email": "user@example.com",
@@ -440,6 +444,7 @@ All endpoints require authentication. The `user_id` is derived from the Bearer t
 #### `POST /budget`
 
 **Request body**
+
 ```json
 {
   "name": "Rent",
@@ -463,6 +468,7 @@ All endpoints require authentication. The `user_id` is derived from the Bearer t
 If a category matching `(category_name, category_type)` does not yet exist for this user, it is created automatically in the same transaction.
 
 **Response `201`**
+
 ```json
 {
   "id": 1,
@@ -495,6 +501,7 @@ If a category matching `(category_name, category_type)` does not yet exist for t
 All body fields are optional. Only supplied fields are updated.
 
 **Request body**
+
 ```json
 {
   "name": "Rent (updated)",
@@ -547,6 +554,7 @@ All endpoints require authentication.
 | `category_type` | string | `income` \| `expense` \| `saving` | No |
 
 **Response `200`**
+
 ```json
 [
   { "id": 1, "name": "Housing",  "type": "expense" },
@@ -560,6 +568,7 @@ All endpoints require authentication.
 Returns every distinct `(year, month)` pair in which the given category has at least one budget entry, sorted ascending. Useful for building date navigation in the frontend.
 
 **Response `200`**
+
 ```json
 [
   { "year": 2026, "month": 1 },
@@ -573,6 +582,7 @@ Returns every distinct `(year, month)` pair in which the given category has at l
 #### `PATCH /category/{category_id}`
 
 **Request body**
+
 ```json
 { "name": "Utilities" }
 ```
