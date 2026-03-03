@@ -34,3 +34,18 @@ class OAuthError(BudgetMeException):
 class ConfigurationError(BudgetMeException):
     """Raised when there are configuration issues."""
     pass
+
+
+class BudgetNotFoundError(BudgetMeException):
+    """Raised when a budget entry is not found."""
+    pass
+
+
+class CategoryNotFoundError(BudgetMeException):
+    """Raised when a category is not found."""
+    pass
+
+
+class UnauthorizedError(BudgetMeException):
+    """Raised when a user is not authorized to perform an action."""
+    pass

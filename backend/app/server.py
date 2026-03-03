@@ -2,12 +2,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from alembic.config import Config
-from alembic import context
 
 from app.config.app import AppConfig
 from app.constants import Env, Cors
 from app.domain.auth import AuthRouter
+from app.domain.budget import BudgetRouter
+from app.domain.category import CategoryRouter
 from app.domain.health import HealthRouter
 
 '''
@@ -73,9 +73,13 @@ class Server:
         # Routers configuration
         health_router = HealthRouter(path="/health").create_router()
         auth_router = AuthRouter(path="/auth").create_router()
+        budget_router = BudgetRouter(path="/budget").create_router()
+        category_router = CategoryRouter(path="/category").create_router()
         
         app.include_router(health_router)
         app.include_router(auth_router)
+        app.include_router(budget_router)
+        app.include_router(category_router)
         
         return app
   

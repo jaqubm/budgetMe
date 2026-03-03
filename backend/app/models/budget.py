@@ -1,7 +1,7 @@
 """Budget model."""
 
 from datetime import datetime
-from typing import Optional
+from sqlalchemy import Column, ForeignKey, Integer
 from sqlmodel import Field
 
 from app.models.base import BaseSQLModel
@@ -9,13 +9,20 @@ from app.models.base import BaseSQLModel
 
 class Budget(BaseSQLModel, table=True):
     """Budget table for storing user budget."""
-    
+
     __tablename__ = "budget"
-    
-    id: int = Field(primary_key=True, sa_column_kwargs={"autoincrement": True}) 
+
+    id: int = Field(primary_key=True, sa_column_kwargs={"autoincrement": True})
     user_id: str = Field(index=True, max_length=255)
     name: str = Field(max_length=255)
     date: datetime = Field(index=True)
     value: float = Field(default=0.0)
-    
-    category_id: int = Field(index=True, foreign_key="category.id")
+
+    category_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("category.id", ondelete="CASCADE"),
+            index=True,
+            nullable=False,
+        )
+    )

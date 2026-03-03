@@ -1,7 +1,7 @@
 """Health check repository."""
 
 from sqlalchemy import text
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 
 class HealthRepository:
@@ -18,7 +18,7 @@ class HealthRepository:
             tuple: (is_healthy, message)
         """
         try:
-            result = self.__session.exec(text("SELECT 1")).first()
+            result = self.__session.exec(select(text("SELECT 1"))).first()
             if result:
                 return True, "Database connection is healthy"
             return False, "Database query returned no result"
