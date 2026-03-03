@@ -160,7 +160,7 @@ function BudgetSection({ type, year, month }: BudgetSectionProps) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="flex flex-col bg-surface border border-border rounded-sm overflow-hidden"
+      className="flex flex-col bg-surface border border-border rounded-sm"
       style={{ borderTop: `2px solid ${meta.borderColor}` }}
     >
       {/* Section header */}

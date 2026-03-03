@@ -31,23 +31,21 @@ export function CategoryCombobox({
     if (value === '') setQuery('')
   }, [value])
 
-  const filtered = query.trim()
+  const trimmed = query.trim()
+
+  const filtered = trimmed
     ? categories.filter((c) =>
-        c.name.toLowerCase().includes(query.trim().toLowerCase()),
+        c.name.toLowerCase().includes(trimmed.toLowerCase()),
       )
     : categories
 
-  const exactMatch = categories.some(
-    (c) => c.name.toLowerCase() === query.trim().toLowerCase(),
-  )
-
-  // Show "Create" option when query is non-empty and not an exact match
-  const showCreate = query.trim().length > 0 && !exactMatch
+  // Show "Create" only when there are zero matching results
+  const showCreate = trimmed.length > 0 && filtered.length === 0
 
   const options: Array<{ label: string; value: string; isCreate?: boolean }> = [
     ...filtered.map((c) => ({ label: c.name, value: c.name })),
     ...(showCreate
-      ? [{ label: `Create "${query.trim()}"`, value: query.trim(), isCreate: true }]
+      ? [{ label: `Create "${trimmed}"`, value: trimmed, isCreate: true }]
       : []),
   ]
 
