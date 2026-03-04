@@ -26,7 +26,7 @@ def upgrade() -> None:
     op.add_column('budget', sa.Column('cloned_from_id', sa.Integer(), nullable=True))
     op.create_index(op.f('ix_budget_cloned_from_id'), 'budget', ['cloned_from_id'], unique=False)
     op.create_index(op.f('ix_budget_reoccur'), 'budget', ['reoccur'], unique=False)
-    op.create_foreign_key(None, 'budget', 'budget', ['cloned_from_id'], ['id'], ondelete='SET NULL')
+    op.create_foreign_key(None, 'budget', 'budget', ['cloned_from_id'], ['id'], ondelete='NO ACTION')
     # ### end Alembic commands ###
 
 

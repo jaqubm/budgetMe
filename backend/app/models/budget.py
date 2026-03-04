@@ -25,7 +25,7 @@ class Budget(BaseSQLModel, table=True):
         default=None,
         sa_column=Column(
             Integer,
-            ForeignKey("budget.id", ondelete="SET NULL"),
+            ForeignKey("budget.id", ondelete="NO ACTION"),
             index=True,
             nullable=True,
         ),
