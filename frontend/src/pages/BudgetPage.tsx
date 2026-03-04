@@ -61,6 +61,8 @@ export default function BudgetPage() {
   const { user, clearAuth } = useAuthStore()
   const qc = useQueryClient()
   const now = new Date()
+  const todayYear = now.getFullYear()
+  const todayMonth = now.getMonth() + 1
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [draggingItem, setDraggingItem] = useState<BudgetResponse | null>(null)
@@ -175,7 +177,17 @@ export default function BudgetPage() {
                 →
               </button>
 
-              {/* Sync recurring — divider then button */}
+              {/* Jump to current month */}
+              {(year !== todayYear || month !== todayMonth) && (
+                <button
+                  onClick={() => { setYear(todayYear); setMonth(todayMonth) }}
+                  title="Go to current month"
+                  aria-label="Go to today"
+                  className="h-6 px-2 text-xs text-text-muted hover:text-text border border-border hover:border-text-dim rounded-sm transition-colors cursor-pointer"
+                >
+                  today
+                </button>
+              )}
               <span className="w-px h-4 bg-border" />
               <button
                 onClick={() => cloneMutation.mutate({ y: year, m: month })}
@@ -351,6 +363,7 @@ function BudgetSection({ type, year, month }: BudgetSectionProps) {
                   onDelete={(id) => deleteMutation.mutate(id)}
                   onUpdate={(id, name, value) => updateMutation.mutate({ id, name, value })}
                   onToggleReoccur={(id, reoccur) => reoccurMutation.mutate({ id, reoccur })}
+                  onEntryCreated={() => void qc.invalidateQueries({ queryKey: ['budgets', year, month, type] })}
                   deletingId={deleteMutation.isPending ? deleteMutation.variables : undefined}
                   year={year}
                   month={month}
@@ -434,18 +447,48 @@ interface CategoryGroupProps {
   onDelete: (id: number) => void
   onUpdate: (id: number, name: string, value: number) => void
   onToggleReoccur: (id: number, reoccur: boolean) => void
+  onEntryCreated: () => void
   deletingId: number | undefined
   year: number
   month: number
 }
 
-function CategoryGroup({ categoryId, categoryName, sectionType, subtotal, entries, onDelete, onUpdate, onToggleReoccur, deletingId, year, month }: CategoryGroupProps) {
+function CategoryGroup({ categoryId, categoryName, sectionType, subtotal, entries, onDelete, onUpdate, onToggleReoccur, onEntryCreated, deletingId, year, month }: CategoryGroupProps) {
+  const qc = useQueryClient()
   const droppableId = `${sectionType}:${categoryName}`
   const { setNodeRef, isOver } = useDroppable({
     id: droppableId,
     data: { categoryName, categoryType: sectionType },
   })
   const [activeAction, setActiveAction] = useState<CategoryAction | null>(null)
+  const [showCatForm, setShowCatForm] = useState(false)
+  const [catName, setCatName] = useState('')
+  const [catValue, setCatValue] = useState('')
+
+  const createMutation = useMutation({
+    mutationFn: createBudget,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['budgets', year, month, sectionType] })
+      onEntryCreated()
+      setCatName('')
+      setCatValue('')
+      setShowCatForm(false)
+    },
+  })
+
+  function submitCatForm(e: React.FormEvent) {
+    e.preventDefault()
+    const n = catName.trim()
+    if (!n) return
+    createMutation.mutate({
+      name: n,
+      category_name: categoryName,
+      category_type: sectionType,
+      year,
+      month,
+      value: catValue ? parseFloat(catValue) : 0,
+    })
+  }
 
   return (
     <motion.div
@@ -482,11 +525,19 @@ function CategoryGroup({ categoryId, categoryName, sectionType, subtotal, entrie
           </button>
         </span>
 
-        {/* Subtotal + delete icon */}
+        {/* Subtotal + add + delete icons */}
         <div className="flex items-center gap-1 flex-shrink-0 ml-3">
-          <span className="font-num text-xs text-text-dim">
+          <span className="font-num text-sm font-medium text-text-muted">
             {formatCurrency(subtotal)}
           </span>
+          {/* Add to this category */}
+          <button
+            onClick={() => { setShowCatForm(true) }}
+            aria-label="Add entry to category"
+            className="overflow-hidden w-0 group-hover/cat:w-6 opacity-0 group-hover/cat:opacity-100 h-6 flex items-center justify-center rounded-sm text-text-dim hover:text-income hover:bg-income/10 transition-all duration-150 cursor-pointer text-base leading-none"
+          >
+            +
+          </button>
           <button
             onClick={() => setActiveAction('delete')}
             aria-label="Delete category"
@@ -510,6 +561,56 @@ function CategoryGroup({ categoryId, categoryName, sectionType, subtotal, entrie
           />
         ))}
       </ul>
+
+      {/* Inline add form for this category */}
+      <AnimatePresence>
+        {showCatForm && (
+          <motion.form
+            key="cat-form"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+            onSubmit={submitCatForm}
+            className="flex items-center gap-2 px-4 py-2 bg-surface-raised border-t border-border-subtle"
+          >
+            <Input
+              placeholder="Entry name"
+              value={catName}
+              onChange={(e) => setCatName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Escape' && setShowCatForm(false)}
+              className="flex-1 min-w-0 h-8 text-sm"
+              autoFocus
+            />
+            <Input
+              type="number"
+              placeholder="0.00"
+              value={catValue}
+              onChange={(e) => setCatValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Escape' && setShowCatForm(false)}
+              min={0}
+              step={0.01}
+              className="w-24 h-8 text-sm font-num"
+            />
+            <button
+              type="submit"
+              disabled={createMutation.isPending || !catName.trim()}
+              aria-label="Save"
+              className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-sm text-income hover:bg-income/10 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-base"
+            >
+              {createMutation.isPending ? <Spinner size="sm" /> : '✓'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCatForm(false)}
+              aria-label="Cancel"
+              className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-sm text-text-dim hover:bg-surface transition-colors cursor-pointer text-lg leading-none"
+            >
+              ×
+            </button>
+          </motion.form>
+        )}
+      </AnimatePresence>
 
       <CategoryActionsModal
         categoryId={categoryId}
@@ -656,9 +757,11 @@ function BudgetItem({ item, onDelete, onUpdate, onToggleReoccur, deleting }: Bud
             : 'text-border hover:text-text-dim',
         ].join(' ')}
       >
-        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-          <path d="M12.5 2.5A5 5 0 1 0 13 7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M13 2.5V6h-3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+          <polyline points="11 2 14 5 11 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M2 5v-1a3 3 0 0 1 3-3h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <polyline points="5 8 2 11 5 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M14 11v1a3 3 0 0 1-3 3H2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
       </button>
 
