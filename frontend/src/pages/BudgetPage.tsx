@@ -1,6 +1,17 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
 import { getBudgets, deleteBudget, createBudget, updateBudget } from '@/api/budget'
 import { getCategories } from '@/api/category'
 import { formatCurrency, getMonthName, shiftMonth } from '@/lib/utils'
@@ -47,9 +58,15 @@ const SECTION_META: Record<
 export default function BudgetPage() {
   const navigate = useNavigate()
   const { user, clearAuth } = useAuthStore()
+  const qc = useQueryClient()
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
+  const [draggingItem, setDraggingItem] = useState<BudgetResponse | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  )
 
   const handleSignOut = () => {
     clearAuth()
@@ -65,6 +82,35 @@ export default function BudgetPage() {
     const s = shiftMonth(year, month, 1)
     setYear(s.year)
     setMonth(s.month)
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    const item = event.active.data.current?.item as BudgetResponse | undefined
+    if (item) setDraggingItem(item)
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    setDraggingItem(null)
+    const { active, over } = event
+    if (!over) return
+
+    const item = active.data.current?.item as BudgetResponse | undefined
+    const targetCategoryName = over.data.current?.categoryName as string | undefined
+    const targetCategoryType = over.data.current?.categoryType as CategoryType | undefined
+
+    if (!item || !targetCategoryName || !targetCategoryType) return
+    if (
+      item.category.name === targetCategoryName &&
+      item.category.type === targetCategoryType
+    ) return
+
+    updateBudget(item.id, {
+      category_name: targetCategoryName,
+      category_type: targetCategoryType,
+    }).then(() => {
+      void qc.invalidateQueries({ queryKey: ['budgets', year, month] })
+      void qc.invalidateQueries({ queryKey: ['categories'] })
+    }).catch(() => {/* silent – optimistic feel, user will see no change on failure */})
   }
 
   return (
@@ -120,11 +166,28 @@ export default function BudgetPage() {
       {/* ── Sections grid ───────────────────────────────────────── */}
       <main className="flex-1">
         <PageShell className="py-6">
-          <div className="grid grid-cols-3 gap-5 items-start">
-            {SECTION_ORDER.map((type) => (
-              <BudgetSection key={type} type={type} year={year} month={month} />
-            ))}
-          </div>
+          <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="grid grid-cols-3 gap-5 items-start">
+              {SECTION_ORDER.map((type) => (
+                <BudgetSection key={type} type={type} year={year} month={month} />
+              ))}
+            </div>
+
+            <DragOverlay dropAnimation={{ duration: 180, easing: 'ease' }}>
+              {draggingItem ? (
+                <div className="flex items-center gap-3 px-5 py-2.5 bg-surface-raised border border-border rounded-sm shadow-xl opacity-95">
+                  <span className="flex-1 text-sm text-text truncate">{draggingItem.name}</span>
+                  <span className="font-num text-sm font-medium text-text">
+                    {formatCurrency(draggingItem.value)}
+                  </span>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         </PageShell>
       </main>
     </div>
@@ -210,6 +273,7 @@ function BudgetSection({ type, year, month }: BudgetSectionProps) {
                 <CategoryGroup
                   key={categoryName}
                   categoryName={categoryName}
+                  sectionType={type}
                   subtotal={subtotal}
                   entries={entries}
                   onDelete={(id) => deleteMutation.mutate(id)}
@@ -286,6 +350,7 @@ function groupByCategory(items: BudgetResponse[]): CategoryGroup[] {
 // ── Category Group ────────────────────────────────────────────────────────────
 interface CategoryGroupProps {
   categoryName: string
+  sectionType: CategoryType
   subtotal: number
   entries: BudgetResponse[]
   onDelete: (id: number) => void
@@ -293,7 +358,13 @@ interface CategoryGroupProps {
   deletingId: number | undefined
 }
 
-function CategoryGroup({ categoryName, subtotal, entries, onDelete, onUpdate, deletingId }: CategoryGroupProps) {
+function CategoryGroup({ categoryName, sectionType, subtotal, entries, onDelete, onUpdate, deletingId }: CategoryGroupProps) {
+  const droppableId = `${sectionType}:${categoryName}`
+  const { setNodeRef, isOver } = useDroppable({
+    id: droppableId,
+    data: { categoryName, categoryType: sectionType },
+  })
+
   return (
     <motion.div
       layout
@@ -302,10 +373,19 @@ function CategoryGroup({ categoryName, subtotal, entries, onDelete, onUpdate, de
       exit={{ opacity: 0 }}
       transition={{ duration: 0.18 }}
     >
-      {/* Category header row */}
-      <div className="flex items-center justify-between px-5 py-2 bg-surface-raised border-b border-border-subtle">
+      {/* Category header row — droppable target */}
+      <div
+        ref={setNodeRef}
+        className={[
+          'flex items-center justify-between px-5 py-2 border-b border-border-subtle transition-colors duration-150',
+          isOver ? 'bg-accent/10 border-accent/40' : 'bg-surface-raised',
+        ].join(' ')}
+      >
         <span className="text-xs font-semibold text-text-muted uppercase tracking-wider truncate">
           {categoryName}
+          {isOver && (
+            <span className="ml-2 text-accent normal-case font-normal">drop here</span>
+          )}
         </span>
         <span className="font-num text-xs text-text-dim flex-shrink-0 ml-3">
           {formatCurrency(subtotal)}
@@ -340,6 +420,11 @@ function BudgetItem({ item, onDelete, onUpdate, deleting }: BudgetItemProps) {
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState(item.name)
   const [editValue, setEditValue] = useState(String(item.value))
+
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `budget-${item.id}`,
+    data: { item },
+  })
 
   function openEdit() {
     setEditName(item.name)
@@ -408,13 +493,31 @@ function BudgetItem({ item, onDelete, onUpdate, deleting }: BudgetItemProps) {
 
   return (
     <motion.li
+      ref={setNodeRef}
       layout
       initial={{ opacity: 0, x: -8 }}
-      animate={{ opacity: 1, x: 0 }}
+      animate={{ opacity: isDragging ? 0 : 1, x: 0 }}
       exit={{ opacity: 0, x: 8 }}
       transition={{ duration: 0.18 }}
       className="group flex items-center gap-1 px-5 py-2.5 hover:bg-surface-raised transition-colors"
     >
+      {/* Drag handle */}
+      <span
+        {...listeners}
+        {...attributes}
+        aria-label="Drag to move"
+        className="flex-shrink-0 w-0 group-hover:w-5 overflow-hidden opacity-0 group-hover:opacity-100 flex items-center justify-center text-text-dim hover:text-text-muted cursor-grab active:cursor-grabbing transition-all duration-150 touch-none"
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <circle cx="4" cy="3" r="1" fill="currentColor"/>
+          <circle cx="4" cy="6" r="1" fill="currentColor"/>
+          <circle cx="4" cy="9" r="1" fill="currentColor"/>
+          <circle cx="8" cy="3" r="1" fill="currentColor"/>
+          <circle cx="8" cy="6" r="1" fill="currentColor"/>
+          <circle cx="8" cy="9" r="1" fill="currentColor"/>
+        </svg>
+      </span>
+
       <div className="flex-1 min-w-0">
         <p className="text-sm text-text truncate">{item.name}</p>
       </div>
