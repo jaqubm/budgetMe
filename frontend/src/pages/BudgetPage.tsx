@@ -289,6 +289,12 @@ function BudgetSection({ type, year, month }: BudgetSectionProps) {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['budgets', year, month, type] }),
   })
 
+  const reoccurMutation = useMutation({
+    mutationFn: ({ id, reoccur }: { id: number; reoccur: boolean }) =>
+      updateBudget(id, { reoccur }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['budgets', year, month, type] }),
+  })
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -344,6 +350,7 @@ function BudgetSection({ type, year, month }: BudgetSectionProps) {
                   entries={entries}
                   onDelete={(id) => deleteMutation.mutate(id)}
                   onUpdate={(id, name, value) => updateMutation.mutate({ id, name, value })}
+                  onToggleReoccur={(id, reoccur) => reoccurMutation.mutate({ id, reoccur })}
                   deletingId={deleteMutation.isPending ? deleteMutation.variables : undefined}
                   year={year}
                   month={month}
@@ -426,12 +433,13 @@ interface CategoryGroupProps {
   entries: BudgetResponse[]
   onDelete: (id: number) => void
   onUpdate: (id: number, name: string, value: number) => void
+  onToggleReoccur: (id: number, reoccur: boolean) => void
   deletingId: number | undefined
   year: number
   month: number
 }
 
-function CategoryGroup({ categoryId, categoryName, sectionType, subtotal, entries, onDelete, onUpdate, deletingId, year, month }: CategoryGroupProps) {
+function CategoryGroup({ categoryId, categoryName, sectionType, subtotal, entries, onDelete, onUpdate, onToggleReoccur, deletingId, year, month }: CategoryGroupProps) {
   const droppableId = `${sectionType}:${categoryName}`
   const { setNodeRef, isOver } = useDroppable({
     id: droppableId,
@@ -455,28 +463,30 @@ function CategoryGroup({ categoryId, categoryName, sectionType, subtotal, entrie
           isOver ? 'bg-accent/10 border-accent/40' : 'bg-surface-raised',
         ].join(' ')}
       >
-        <span className="text-xs font-semibold text-text-muted uppercase tracking-wider truncate">
-          {categoryName}
-          {isOver && (
-            <span className="ml-2 text-accent normal-case font-normal">drop here</span>
-          )}
-        </span>
-
-        <div className="flex items-center gap-1">
-          <span className="font-num text-xs text-text-dim ml-3">
-            {formatCurrency(subtotal)}
+        {/* Name + inline rename icon */}
+        <span className="flex items-center gap-1 min-w-0">
+          <span className="text-xs font-semibold text-text-muted uppercase tracking-wider truncate">
+            {categoryName}
+            {isOver && (
+              <span className="ml-2 text-accent normal-case font-normal">drop here</span>
+            )}
           </span>
-          {/* Rename button */}
           <button
             onClick={() => setActiveAction('rename')}
             aria-label="Rename category"
-            className="overflow-hidden w-0 group-hover/cat:w-6 opacity-0 group-hover/cat:opacity-100 h-6 flex items-center justify-center rounded-sm text-text-dim hover:text-text hover:bg-surface transition-all duration-150 cursor-pointer ml-1"
+            className="overflow-hidden w-0 group-hover/cat:w-5 opacity-0 group-hover/cat:opacity-100 flex-shrink-0 h-5 flex items-center justify-center rounded-sm text-text-dim hover:text-text hover:bg-surface transition-all duration-150 cursor-pointer"
           >
-            <svg width="11" height="11" viewBox="0 0 13 13" fill="none">
+            <svg width="10" height="10" viewBox="0 0 13 13" fill="none">
               <path d="M9.5 1.5l2 2-7 7H2.5v-2l7-7z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          {/* Delete button */}
+        </span>
+
+        {/* Subtotal + delete icon */}
+        <div className="flex items-center gap-1 flex-shrink-0 ml-3">
+          <span className="font-num text-xs text-text-dim">
+            {formatCurrency(subtotal)}
+          </span>
           <button
             onClick={() => setActiveAction('delete')}
             aria-label="Delete category"
@@ -495,6 +505,7 @@ function CategoryGroup({ categoryId, categoryName, sectionType, subtotal, entrie
             item={item}
             onDelete={() => onDelete(item.id)}
             onUpdate={(name, value) => onUpdate(item.id, name, value)}
+            onToggleReoccur={() => onToggleReoccur(item.id, !item.reoccur)}
             deleting={deletingId === item.id}
           />
         ))}
@@ -519,10 +530,11 @@ interface BudgetItemProps {
   item: BudgetResponse
   onDelete: () => void
   onUpdate: (name: string, value: number) => void
+  onToggleReoccur: () => void
   deleting: boolean
 }
 
-function BudgetItem({ item, onDelete, onUpdate, deleting }: BudgetItemProps) {
+function BudgetItem({ item, onDelete, onUpdate, onToggleReoccur, deleting }: BudgetItemProps) {
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState(item.name)
   const [editValue, setEditValue] = useState(String(item.value))
@@ -631,6 +643,24 @@ function BudgetItem({ item, onDelete, onUpdate, deleting }: BudgetItemProps) {
       <span className="font-num text-sm font-medium text-text flex-shrink-0">
         {formatCurrency(item.value)}
       </span>
+
+      {/* Reoccur toggle */}
+      <button
+        onClick={onToggleReoccur}
+        aria-label={item.reoccur ? 'Disable recurring' : 'Enable recurring'}
+        title={item.reoccur ? 'Recurring — click to disable' : 'Not recurring — click to enable'}
+        className={[
+          'flex-shrink-0 h-7 w-7 flex items-center justify-center rounded-sm transition-colors duration-150 cursor-pointer',
+          item.reoccur
+            ? 'text-accent'
+            : 'text-border hover:text-text-dim',
+        ].join(' ')}
+      >
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+          <path d="M12.5 2.5A5 5 0 1 0 13 7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M13 2.5V6h-3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
 
       {/* Edit button */}
       <button
