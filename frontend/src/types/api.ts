@@ -29,6 +29,8 @@ export interface BudgetResponse {
   year: number
   month: number
   value: number
+  reoccur: boolean
+  cloned_from_id: number | null
   category: CategoryInfo
 }
 
@@ -37,8 +39,14 @@ export interface BudgetCreate {
   year: number
   month: number
   value?: number
+  reoccur?: boolean
   category_name: string
   category_type: CategoryType
+}
+
+export interface BudgetCloneRequest {
+  year: number
+  month: number
 }
 
 export interface BudgetUpdate {

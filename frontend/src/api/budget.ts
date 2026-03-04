@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { BudgetResponse, BudgetCreate, BudgetUpdate, CategoryType } from '@/types/api'
+import type { BudgetResponse, BudgetCreate, BudgetUpdate, BudgetCloneRequest, CategoryType } from '@/types/api'
 
 export interface GetBudgetsParams {
   year: number
@@ -28,4 +28,10 @@ export async function updateBudget(id: number, payload: BudgetUpdate): Promise<B
 /** DELETE /budget/:id — remove a budget entry */
 export async function deleteBudget(id: number): Promise<void> {
   await apiClient.delete(`/budget/${id}`)
+}
+
+/** POST /budget/clone — clone all reoccurring budgets from the previous month into the given month */
+export async function cloneReoccurringBudgets(payload: BudgetCloneRequest): Promise<BudgetResponse[]> {
+  const { data } = await apiClient.post<BudgetResponse[]>('/budget/clone', payload)
+  return data
 }

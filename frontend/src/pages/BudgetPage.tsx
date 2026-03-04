@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -12,7 +12,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import { getBudgets, deleteBudget, createBudget, updateBudget } from '@/api/budget'
+import { getBudgets, deleteBudget, createBudget, updateBudget, cloneReoccurringBudgets } from '@/api/budget'
 import { getCategories } from '@/api/category'
 import { formatCurrency, getMonthName, shiftMonth } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
@@ -64,6 +64,39 @@ export default function BudgetPage() {
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [draggingItem, setDraggingItem] = useState<BudgetResponse | null>(null)
+
+  // Track which month-keys we've already attempted an auto-clone for
+  const autoCloneAttempted = useRef(new Set<string>())
+
+  // Untyped query — used only to detect whether the month is empty
+  const { data: monthBudgets = [], isFetched: monthFetched } = useQuery({
+    queryKey: ['budgets', year, month],
+    queryFn: () => getBudgets({ year, month }),
+  })
+
+  const cloneMutation = useMutation({
+    mutationFn: ({ y, m }: { y: number; m: number }) =>
+      cloneReoccurringBudgets({ year: y, month: m }),
+    onSuccess: (_, { y, m }) => {
+      void qc.invalidateQueries({ queryKey: ['budgets', y, m] })
+    },
+  })
+
+  // Auto-clone once when navigating to a month that has no budgets yet
+  useEffect(() => {
+    const key = `${year}-${month}`
+    if (
+      monthFetched &&
+      monthBudgets.length === 0 &&
+      !autoCloneAttempted.current.has(key)
+    ) {
+      autoCloneAttempted.current.add(key)
+      cloneMutation.mutate({ y: year, m: month })
+    }
+    // cloneMutation intentionally omitted — it is stable and adding it would
+    // cause unnecessary re-runs on every mutation state change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year, month, monthFetched, monthBudgets.length])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -140,6 +173,37 @@ export default function BudgetPage() {
                 className="w-8 h-8 flex items-center justify-center rounded-sm text-text-muted hover:text-text hover:bg-surface-raised transition-colors cursor-pointer"
               >
                 →
+              </button>
+
+              {/* Sync recurring — divider then button */}
+              <span className="w-px h-4 bg-border" />
+              <button
+                onClick={() => cloneMutation.mutate({ y: year, m: month })}
+                disabled={cloneMutation.isPending}
+                title="Copy recurring budgets from the previous month into this month"
+                aria-label="Sync recurring budgets"
+                className="flex items-center gap-1.5 h-8 px-3 text-xs text-text-muted hover:text-text border border-border hover:border-text-dim rounded-sm transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {cloneMutation.isPending ? (
+                  <Spinner size="sm" />
+                ) : (
+                  <svg
+                    width="12" height="12" viewBox="0 0 14 14" fill="none"
+                    className="flex-shrink-0"
+                  >
+                    <path
+                      d="M12.5 2.5A6 6 0 1 0 13 7"
+                      stroke="currentColor" strokeWidth="1.4"
+                      strokeLinecap="round" strokeLinejoin="round"
+                    />
+                    <path
+                      d="M13 2.5V6h-3.5"
+                      stroke="currentColor" strokeWidth="1.4"
+                      strokeLinecap="round" strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+                Sync recurring
               </button>
             </div>
 
