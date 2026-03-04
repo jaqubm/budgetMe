@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlmodel import Session, select
 
-from app.domain.category.schema import BudgetDateResponse, CategoryResponse, CategoryUpdate
+from app.domain.category.schema import BudgetDateResponse, CategoryReoccurUpdate, CategoryResponse, CategoryUpdate
 from app.exceptions import CategoryNotFoundError, UnauthorizedError
 from app.models.budget import Budget
 from app.models.category import Category, CategoryType
@@ -57,7 +57,7 @@ class CategoryRepository:
         if category_type is not None:
             statement = statement.where(Category.type == category_type)
         categories = self.__session.exec(statement).all()
-        return [CategoryResponse(id=c.id, name=c.name, type=c.type) for c in categories]
+        return [CategoryResponse(id=c.id, name=c.name, type=c.type, reoccur=c.reoccur) for c in categories]
 
     def get_budget_dates(self, user_id: str, category_id: int) -> list[BudgetDateResponse]:
         """
@@ -123,7 +123,60 @@ class CategoryRepository:
         self.__session.add(category)
         self.__session.commit()
         self.__session.refresh(category)
-        return CategoryResponse(id=category.id, name=category.name, type=category.type)
+        return CategoryResponse(id=category.id, name=category.name, type=category.type, reoccur=category.reoccur)
+
+    def get_reoccurring_categories(
+        self, user_id: str, category_type: Optional[CategoryType] = None
+    ) -> list[CategoryResponse]:
+        """
+        Return all categories with reoccur=True for the user,
+        optionally filtered by type.
+
+        Args:
+            user_id: The authenticated user's ID
+            category_type: Optional type filter
+
+        Returns:
+            list[CategoryResponse]: Reoccurring categories
+        """
+        statement = select(Category).where(
+            Category.user_id == user_id,
+            Category.reoccur == True,  # noqa: E712
+        )
+        if category_type is not None:
+            statement = statement.where(Category.type == category_type)
+        categories = self.__session.exec(statement).all()
+        return [CategoryResponse(id=c.id, name=c.name, type=c.type, reoccur=c.reoccur) for c in categories]
+
+    def set_reoccur(
+        self, category_id: int, user_id: str, data: CategoryReoccurUpdate
+    ) -> CategoryResponse:
+        """
+        Set the reoccur flag on a category.
+
+        Args:
+            category_id: ID of the category to update
+            user_id: The authenticated user's ID (ownership check)
+            data: Payload containing the new reoccur value
+
+        Returns:
+            CategoryResponse: The updated category
+
+        Raises:
+            CategoryNotFoundError: If the category does not exist
+            UnauthorizedError: If the category belongs to a different user
+        """
+        category = self.__session.get(Category, category_id)
+        if not category:
+            raise CategoryNotFoundError(f"Category with id {category_id} not found")
+        if category.user_id != user_id:
+            raise UnauthorizedError("You don't have permission to update this category")
+
+        category.reoccur = data.reoccur
+        self.__session.add(category)
+        self.__session.commit()
+        self.__session.refresh(category)
+        return CategoryResponse(id=category.id, name=category.name, type=category.type, reoccur=category.reoccur)
 
     def delete_category(self, category_id: int, user_id: str) -> None:
         """

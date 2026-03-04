@@ -8,8 +8,8 @@ from app.models.category import CategoryType
 
 PositiveId = Annotated[int, Field(gt=0, description="Database primary key")]
 Name = Annotated[str, Field(min_length=1, max_length=255, description="Non-empty name")]
-Year = Annotated[int, Field(ge=2000, le=2100, description="Calendar year (2000\u20132100)")]
-Month = Annotated[int, Field(ge=1, le=12, description="Calendar month (1\u201312)")]
+Year = Annotated[int, Field(ge=2000, le=2100, description="Calendar year (2000–2100)")]
+Month = Annotated[int, Field(ge=1, le=12, description="Calendar month (1–12)")]
 
 
 class CategoryResponse(BaseModel):
@@ -18,6 +18,7 @@ class CategoryResponse(BaseModel):
     id: PositiveId
     name: Name
     type: CategoryType
+    reoccur: bool
 
 
 class CategoryUpdate(BaseModel):
@@ -26,6 +27,12 @@ class CategoryUpdate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     name: Name
+
+
+class CategoryReoccurUpdate(BaseModel):
+    """Schema for toggling the reoccur flag on a category."""
+
+    reoccur: bool
 
 
 class BudgetDateResponse(BaseModel):

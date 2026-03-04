@@ -279,6 +279,7 @@ The API is available at `http://localhost:8000`.
 | `user_id` | `VARCHAR(255)` | NOT NULL, indexed | Google email of the owner |
 | `name` | `VARCHAR(255)` | NOT NULL | Category display name |
 | `type` | `VARCHAR` (enum) | NOT NULL, indexed | `income` \| `expense` \| `saving` |
+| `reoccur` | `BOOLEAN` | NOT NULL, default `false`, indexed | Whether the UI should pre-populate this category every month |
 
 #### `Budget`
 
@@ -303,6 +304,7 @@ Managed by **Alembic** with autogenerate. File naming convention: `{slug}_{YYYY}
 | `add_user_id_to_category_table_2026_03_03-…` | Adds `user_id` column + index to `category` |
 | `add_cascade_delete_budget_on_category_2026_03_03-…` | Recreates `category_id` FK with `ON DELETE CASCADE` |
 | `replace_date_with_year_and_month_in_2026_03_03-…` | Drops `date` column; adds indexed `year` + `month` columns |
+| `add_reoccur_to_category_2026_03_04-32bbe059a9ea` | Adds indexed `reoccur` boolean column to `category` (default `false`) |
 
 Common Alembic commands:
 
@@ -541,8 +543,10 @@ All endpoints require authentication.
 | Method | Path | Auth | Status | Description |
 |---|---|---|---|---|
 | GET | `/category` | ✅ | 200 | List all categories for the user |
+| GET | `/category/reoccurring` | ✅ | 200 | List categories with `reoccur=true` |
 | GET | `/category/{category_id}/budget-dates` | ✅ | 200 | List distinct year/month pairs with budgets |
 | PATCH | `/category/{category_id}` | ✅ | 200 | Rename a category |
+| PATCH | `/category/{category_id}/reoccur` | ✅ | 200 | Set or unset the `reoccur` flag |
 | DELETE | `/category/{category_id}` | ✅ | 204 | Delete category (cascades to all linked budgets) |
 
 #### `GET /category`
@@ -557,11 +561,23 @@ All endpoints require authentication.
 
 ```json
 [
-  { "id": 1, "name": "Housing",  "type": "expense" },
-  { "id": 2, "name": "Salary",   "type": "income"  },
-  { "id": 3, "name": "Vacation", "type": "saving"  }
+  { "id": 1, "name": "Housing",  "type": "expense", "reoccur": true  },
+  { "id": 2, "name": "Salary",   "type": "income",  "reoccur": true  },
+  { "id": 3, "name": "Vacation", "type": "saving",  "reoccur": false }
 ]
 ```
+
+#### `GET /category/reoccurring`
+
+Returns only categories where `reoccur` is `true`. The UI uses this list to pre-populate budget entries automatically at the start of each month.
+
+**Query parameters**
+
+| Parameter | Type | Constraints | Required |
+|---|---|---|---|
+| `category_type` | string | `income` \| `expense` \| `saving` | No |
+
+**Response `200`** — array of `CategoryResponse` objects where `reoccur` is `true`.
 
 #### `GET /category/{category_id}/budget-dates`
 
@@ -581,6 +597,8 @@ Returns every distinct `(year, month)` pair in which the given category has at l
 
 #### `PATCH /category/{category_id}`
 
+Renames the category.
+
 **Request body**
 
 ```json
@@ -590,6 +608,24 @@ Returns every distinct `(year, month)` pair in which the given category has at l
 | Field | Type | Constraints |
 |---|---|---|
 | `name` | string | 1–255 chars, whitespace stripped |
+
+**Response `200`** — updated `CategoryResponse`.
+
+**Error responses**: `403 Forbidden`, `404 Not Found`.
+
+#### `PATCH /category/{category_id}/reoccur`
+
+Sets or unsets the `reoccur` flag. When `true`, the UI should pre-populate this category automatically at the start of every new month.
+
+**Request body**
+
+```json
+{ "reoccur": true }
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `reoccur` | boolean | `true` to enable monthly auto-population, `false` to disable |
 
 **Response `200`** — updated `CategoryResponse`.
 
