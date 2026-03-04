@@ -23,4 +23,3 @@ class Category(BaseSQLModel, table=True):
     user_id: str = Field(index=True, max_length=255)
     name: str = Field(max_length=255)
     type: CategoryType = Field(index=True)
-    reoccur: bool = Field(default=False, index=True)

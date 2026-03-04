@@ -18,7 +18,6 @@ class CategoryResponse(BaseModel):
     id: PositiveId
     name: Name
     type: CategoryType
-    reoccur: bool
 
 
 class CategoryUpdate(BaseModel):
@@ -27,12 +26,6 @@ class CategoryUpdate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     name: Name
-
-
-class CategoryReoccurUpdate(BaseModel):
-    """Schema for toggling the reoccur flag on a category."""
-
-    reoccur: bool
 
 
 class BudgetDateResponse(BaseModel):
