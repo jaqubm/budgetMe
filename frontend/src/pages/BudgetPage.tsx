@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getBudgets, deleteBudget, createBudget } from '@/api/budget'
+import { getBudgets, deleteBudget, createBudget, updateBudget } from '@/api/budget'
 import { getCategories } from '@/api/category'
 import { formatCurrency, getMonthName, shiftMonth } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
@@ -155,6 +155,12 @@ function BudgetSection({ type, year, month }: BudgetSectionProps) {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['budgets', year, month, type] }),
   })
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, name, value }: { id: number; name: string; value: number }) =>
+      updateBudget(id, { name, value }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['budgets', year, month, type] }),
+  })
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -207,6 +213,7 @@ function BudgetSection({ type, year, month }: BudgetSectionProps) {
                   subtotal={subtotal}
                   entries={entries}
                   onDelete={(id) => deleteMutation.mutate(id)}
+                  onUpdate={(id, name, value) => updateMutation.mutate({ id, name, value })}
                   deletingId={deleteMutation.isPending ? deleteMutation.variables : undefined}
                 />
               ))}
@@ -282,10 +289,11 @@ interface CategoryGroupProps {
   subtotal: number
   entries: BudgetResponse[]
   onDelete: (id: number) => void
+  onUpdate: (id: number, name: string, value: number) => void
   deletingId: number | undefined
 }
 
-function CategoryGroup({ categoryName, subtotal, entries, onDelete, deletingId }: CategoryGroupProps) {
+function CategoryGroup({ categoryName, subtotal, entries, onDelete, onUpdate, deletingId }: CategoryGroupProps) {
   return (
     <motion.div
       layout
@@ -311,6 +319,7 @@ function CategoryGroup({ categoryName, subtotal, entries, onDelete, deletingId }
             key={item.id}
             item={item}
             onDelete={() => onDelete(item.id)}
+            onUpdate={(name, value) => onUpdate(item.id, name, value)}
             deleting={deletingId === item.id}
           />
         ))}
@@ -323,10 +332,80 @@ function CategoryGroup({ categoryName, subtotal, entries, onDelete, deletingId }
 interface BudgetItemProps {
   item: BudgetResponse
   onDelete: () => void
+  onUpdate: (name: string, value: number) => void
   deleting: boolean
 }
 
-function BudgetItem({ item, onDelete, deleting }: BudgetItemProps) {
+function BudgetItem({ item, onDelete, onUpdate, deleting }: BudgetItemProps) {
+  const [editing, setEditing] = useState(false)
+  const [editName, setEditName] = useState(item.name)
+  const [editValue, setEditValue] = useState(String(item.value))
+
+  function openEdit() {
+    setEditName(item.name)
+    setEditValue(String(item.value))
+    setEditing(true)
+  }
+
+  function cancelEdit() {
+    setEditing(false)
+  }
+
+  function commitEdit() {
+    const v = parseFloat(editValue)
+    const name = editName.trim()
+    if (!name || isNaN(v) || v < 0) return
+    onUpdate(name, v)
+    setEditing(false)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') commitEdit()
+    if (e.key === 'Escape') cancelEdit()
+  }
+
+  if (editing) {
+    return (
+      <motion.li
+        layout
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex items-center gap-2 px-4 py-2 bg-surface-raised border-b border-border-subtle"
+      >
+        <Input
+          value={editName}
+          onChange={(e) => setEditName(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="flex-1 min-w-0 h-8 text-sm"
+          autoFocus
+        />
+        <Input
+          type="number"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          min={0}
+          step={0.01}
+          className="w-28 h-8 text-sm font-num"
+        />
+        <button
+          onClick={commitEdit}
+          aria-label="Save"
+          className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-sm text-income hover:bg-income/10 transition-colors cursor-pointer text-base"
+        >
+          ✓
+        </button>
+        <button
+          onClick={cancelEdit}
+          aria-label="Cancel"
+          className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-sm text-text-dim hover:bg-surface transition-colors cursor-pointer text-lg leading-none"
+        >
+          ×
+        </button>
+      </motion.li>
+    )
+  }
+
   return (
     <motion.li
       layout
@@ -334,7 +413,7 @@ function BudgetItem({ item, onDelete, deleting }: BudgetItemProps) {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 8 }}
       transition={{ duration: 0.18 }}
-      className="group flex items-center gap-3 px-5 py-2.5 hover:bg-surface-raised transition-colors"
+      className="group flex items-center gap-1 px-5 py-2.5 hover:bg-surface-raised transition-colors"
     >
       <div className="flex-1 min-w-0">
         <p className="text-sm text-text truncate">{item.name}</p>
@@ -344,11 +423,23 @@ function BudgetItem({ item, onDelete, deleting }: BudgetItemProps) {
         {formatCurrency(item.value)}
       </span>
 
+      {/* Edit button */}
+      <button
+        onClick={openEdit}
+        aria-label="Edit entry"
+        className="overflow-hidden w-0 group-hover:w-8 opacity-0 group-hover:opacity-100 flex-shrink-0 h-8 flex items-center justify-center rounded-sm text-text-dim hover:text-text hover:bg-surface transition-all duration-150 cursor-pointer"
+      >
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <path d="M9.5 1.5l2 2-7 7H2.5v-2l7-7z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      {/* Delete button */}
       <button
         onClick={onDelete}
         disabled={deleting}
         aria-label="Delete entry"
-        className="opacity-0 group-hover:opacity-100 flex-shrink-0 w-6 h-6 flex items-center justify-center text-text-dim hover:text-expense transition-all cursor-pointer disabled:cursor-not-allowed"
+        className="overflow-hidden w-0 group-hover:w-8 opacity-0 group-hover:opacity-100 flex-shrink-0 h-8 flex items-center justify-center rounded-sm text-text-dim hover:text-expense hover:bg-expense/10 transition-all duration-150 cursor-pointer disabled:cursor-not-allowed text-lg leading-none"
       >
         {deleting ? <Spinner size="sm" /> : '×'}
       </button>
