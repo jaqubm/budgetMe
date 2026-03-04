@@ -22,6 +22,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { TypeBadge } from '@/components/ui/TypeBadge'
 import { LogoWordmark } from '@/components/ui/Logo'
 import { PageShell } from '@/components/layout/PageShell'
+import { CategoryActionsModal, type CategoryAction } from '@/components/ui/CategoryActionsModal'
 import { useAuthStore } from '@/store/authStore'
 import { useNavigate } from 'react-router-dom'
 import type { CategoryType, BudgetResponse, CategoryResponse } from '@/types/api'
@@ -269,9 +270,10 @@ function BudgetSection({ type, year, month }: BudgetSectionProps) {
         ) : (
           <div className="divide-y divide-border-subtle">
             <AnimatePresence initial={false}>
-              {groupByCategory(items).map(({ categoryName, subtotal, entries }) => (
+              {groupByCategory(items).map(({ categoryId, categoryName, subtotal, entries }) => (
                 <CategoryGroup
                   key={categoryName}
+                  categoryId={categoryId}
                   categoryName={categoryName}
                   sectionType={type}
                   subtotal={subtotal}
@@ -279,6 +281,8 @@ function BudgetSection({ type, year, month }: BudgetSectionProps) {
                   onDelete={(id) => deleteMutation.mutate(id)}
                   onUpdate={(id, name, value) => updateMutation.mutate({ id, name, value })}
                   deletingId={deleteMutation.isPending ? deleteMutation.variables : undefined}
+                  year={year}
+                  month={month}
                 />
               ))}
             </AnimatePresence>
@@ -327,6 +331,7 @@ function BudgetSection({ type, year, month }: BudgetSectionProps) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 interface CategoryGroup {
+  categoryId: number
   categoryName: string
   subtotal: number
   entries: BudgetResponse[]
@@ -341,6 +346,7 @@ function groupByCategory(items: BudgetResponse[]): CategoryGroup[] {
     map.set(key, group)
   }
   return Array.from(map.entries()).map(([categoryName, entries]) => ({
+    categoryId: entries[0]!.category.id,
     categoryName,
     subtotal: entries.reduce((s, e) => s + e.value, 0),
     entries,
@@ -349,6 +355,7 @@ function groupByCategory(items: BudgetResponse[]): CategoryGroup[] {
 
 // ── Category Group ────────────────────────────────────────────────────────────
 interface CategoryGroupProps {
+  categoryId: number
   categoryName: string
   sectionType: CategoryType
   subtotal: number
@@ -356,14 +363,17 @@ interface CategoryGroupProps {
   onDelete: (id: number) => void
   onUpdate: (id: number, name: string, value: number) => void
   deletingId: number | undefined
+  year: number
+  month: number
 }
 
-function CategoryGroup({ categoryName, sectionType, subtotal, entries, onDelete, onUpdate, deletingId }: CategoryGroupProps) {
+function CategoryGroup({ categoryId, categoryName, sectionType, subtotal, entries, onDelete, onUpdate, deletingId, year, month }: CategoryGroupProps) {
   const droppableId = `${sectionType}:${categoryName}`
   const { setNodeRef, isOver } = useDroppable({
     id: droppableId,
     data: { categoryName, categoryType: sectionType },
   })
+  const [activeAction, setActiveAction] = useState<CategoryAction | null>(null)
 
   return (
     <motion.div
@@ -377,7 +387,7 @@ function CategoryGroup({ categoryName, sectionType, subtotal, entries, onDelete,
       <div
         ref={setNodeRef}
         className={[
-          'flex items-center justify-between px-5 py-2 border-b border-border-subtle transition-colors duration-150',
+          'group/cat flex items-center justify-between px-5 py-2 border-b border-border-subtle transition-colors duration-150',
           isOver ? 'bg-accent/10 border-accent/40' : 'bg-surface-raised',
         ].join(' ')}
       >
@@ -387,9 +397,30 @@ function CategoryGroup({ categoryName, sectionType, subtotal, entries, onDelete,
             <span className="ml-2 text-accent normal-case font-normal">drop here</span>
           )}
         </span>
-        <span className="font-num text-xs text-text-dim flex-shrink-0 ml-3">
-          {formatCurrency(subtotal)}
-        </span>
+
+        <div className="flex items-center gap-1">
+          <span className="font-num text-xs text-text-dim ml-3">
+            {formatCurrency(subtotal)}
+          </span>
+          {/* Rename button */}
+          <button
+            onClick={() => setActiveAction('rename')}
+            aria-label="Rename category"
+            className="overflow-hidden w-0 group-hover/cat:w-6 opacity-0 group-hover/cat:opacity-100 h-6 flex items-center justify-center rounded-sm text-text-dim hover:text-text hover:bg-surface transition-all duration-150 cursor-pointer ml-1"
+          >
+            <svg width="11" height="11" viewBox="0 0 13 13" fill="none">
+              <path d="M9.5 1.5l2 2-7 7H2.5v-2l7-7z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          {/* Delete button */}
+          <button
+            onClick={() => setActiveAction('delete')}
+            aria-label="Delete category"
+            className="overflow-hidden w-0 group-hover/cat:w-6 opacity-0 group-hover/cat:opacity-100 h-6 flex items-center justify-center rounded-sm text-text-dim hover:text-expense hover:bg-expense/10 transition-all duration-150 cursor-pointer text-base leading-none"
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       {/* Entries under this category */}
@@ -404,6 +435,17 @@ function CategoryGroup({ categoryName, sectionType, subtotal, entries, onDelete,
           />
         ))}
       </ul>
+
+      <CategoryActionsModal
+        categoryId={categoryId}
+        categoryName={categoryName}
+        categoryType={sectionType}
+        entries={entries}
+        action={activeAction}
+        year={year}
+        month={month}
+        onClose={() => setActiveAction(null)}
+      />
     </motion.div>
   )
 }
