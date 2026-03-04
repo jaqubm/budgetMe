@@ -1,5 +1,7 @@
 """Budget model."""
 
+from typing import Optional
+
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlmodel import Field
 
@@ -17,6 +19,17 @@ class Budget(BaseSQLModel, table=True):
     year: int = Field(index=True)
     month: int = Field(index=True)
     value: float = Field(default=0.0)
+    reoccur: bool = Field(default=False, index=True)
+
+    cloned_from_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(
+            Integer,
+            ForeignKey("budget.id", ondelete="SET NULL"),
+            index=True,
+            nullable=True,
+        ),
+    )
 
     category_id: int = Field(
         sa_column=Column(

@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlmodel import Session, col, select
 
-from app.domain.budget.schema import BudgetCreate, BudgetResponse, BudgetUpdate, CategoryInfo
+from app.domain.budget.schema import BudgetCloneRequest, BudgetCreate, BudgetResponse, BudgetUpdate, CategoryInfo
 from app.domain.category.repository import CategoryRepository
 from app.exceptions import BudgetNotFoundError, UnauthorizedError
 from app.models.budget import Budget
@@ -26,6 +26,8 @@ class BudgetRepository:
             year=budget.year,
             month=budget.month,
             value=budget.value,
+            reoccur=budget.reoccur,
+            cloned_from_id=budget.cloned_from_id,
             category=CategoryInfo(id=category.id, name=category.name, type=category.type),
         )
 
@@ -50,6 +52,7 @@ class BudgetRepository:
             year=data.year,
             month=data.month,
             value=data.value,
+            reoccur=data.reoccur,
             category_id=category.id,
         )
         self.__session.add(budget)
@@ -125,6 +128,8 @@ class BudgetRepository:
             budget.month = data.month
         if data.value is not None:
             budget.value = data.value
+        if data.reoccur is not None:
+            budget.reoccur = data.reoccur
 
         if data.category_name is not None or data.category_type is not None:
             current_category = self.__session.get(Category, budget.category_id)
@@ -144,6 +149,76 @@ class BudgetRepository:
         self.__session.commit()
         self.__session.refresh(budget)
         return self._to_response(budget, category)
+
+    def clone_reoccurring_budgets(self, user_id: str, data: BudgetCloneRequest) -> list[BudgetResponse]:
+        """
+        Clone all reoccurring budgets from the previous month into the target year/month.
+
+        The previous month is calculated automatically (e.g. target 2026/3 → source 2026/2;
+        target 2026/1 → source 2025/12). Budgets in the target month that already have a
+        cloned_from_id pointing to a source budget are skipped to prevent duplicate cloning.
+
+        Args:
+            user_id: The authenticated user's ID
+            data: Target year and month to clone into
+
+        Returns:
+            list[BudgetResponse]: Newly created cloned budget entries (empty if all were
+            already cloned or no reoccurring source budgets exist)
+        """
+        prev_year, prev_month = (data.year - 1, 12) if data.month == 1 else (data.year, data.month - 1)
+
+        # Fetch all reoccurring budgets from the previous month
+        source_statement = (
+            select(Budget, Category)
+            .join(Category, col(Budget.category_id) == col(Category.id))
+            .where(
+                Budget.user_id == user_id,
+                Budget.year == prev_year,
+                Budget.month == prev_month,
+                Budget.reoccur == True,  # noqa: E712
+            )
+        )
+        sources = self.__session.exec(source_statement).all()
+
+        if not sources:
+            return []
+
+        # Determine which source IDs are already cloned into the target month
+        source_ids = [b.id for b, _ in sources]
+        existing_statement = select(Budget.cloned_from_id).where(
+            Budget.user_id == user_id,
+            Budget.year == data.year,
+            Budget.month == data.month,
+            col(Budget.cloned_from_id).in_(source_ids),
+        )
+        already_cloned_ids: set[int] = {
+            cid for cid in self.__session.exec(existing_statement).all() if cid is not None
+        }
+
+        # Clone each source that has not yet been cloned into the target month
+        cloned: list[BudgetResponse] = []
+        for source_budget, category in sources:
+            if source_budget.id in already_cloned_ids:
+                continue
+            new_budget = Budget(
+                user_id=user_id,
+                name=source_budget.name,
+                year=data.year,
+                month=data.month,
+                value=source_budget.value,
+                reoccur=source_budget.reoccur,
+                cloned_from_id=source_budget.id,
+                category_id=source_budget.category_id,
+            )
+            self.__session.add(new_budget)
+            self.__session.flush()
+            self.__session.refresh(new_budget)
+            self.__session.refresh(category)
+            cloned.append(self._to_response(new_budget, category))
+
+        self.__session.commit()
+        return cloned
 
     def delete_budget(self, budget_id: int, user_id: str) -> None:
         """

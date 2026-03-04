@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.dependencies import get_budget_repository, get_current_user_id
 from app.domain.budget.repository import BudgetRepository
-from app.domain.budget.schema import BudgetCreate, BudgetResponse, BudgetUpdate
+from app.domain.budget.schema import BudgetCloneRequest, BudgetCreate, BudgetResponse, BudgetUpdate
 from app.exceptions import BudgetNotFoundError, UnauthorizedError
 from app.models.category import CategoryType
 
@@ -32,6 +32,9 @@ class BudgetRouter:
             The category identified by (category_name, category_type) is looked up for
             the current user and created automatically if it does not yet exist.
 
+            Set `reoccur` to `true` to have this budget cloned automatically into
+            subsequent months via the `/budget/clone` endpoint.
+
             Accepted values for `category_type`: `income`, `expense`, `saving`.
             """
             return repository.create_budget(user_id, data)
@@ -50,6 +53,29 @@ class BudgetRouter:
             Optionally filter by `category_type`. Accepted values: `income`, `expense`, `saving`.
             """
             return repository.get_budgets(user_id, year, month, category_type)
+
+        @router.post("/clone", response_model=list[BudgetResponse], status_code=status.HTTP_200_OK)
+        async def clone_reoccurring_budgets(
+            data: BudgetCloneRequest,
+            user_id: str = Depends(get_current_user_id),
+            repository: BudgetRepository = Depends(get_budget_repository),
+        ):
+            """
+            Clone all reoccurring budgets from the previous month into the specified year/month.
+
+            The previous month is derived automatically:
+            - Target `2026/3` → clones from `2026/2`
+            - Target `2026/1` → clones from `2025/12`
+
+            Only budgets with `reoccur=true` are cloned. Budgets in the target month that
+            already carry a `cloned_from_id` pointing to a source budget are skipped, so
+            calling this endpoint multiple times is safe (idempotent per source budget).
+
+            Returns the list of **newly created** budget entries. An empty array means
+            either all reoccurring budgets were already cloned or there are none in the
+            previous month.
+            """
+            return repository.clone_reoccurring_budgets(user_id, data)
 
         @router.patch("/{budget_id}", response_model=BudgetResponse, status_code=status.HTTP_200_OK)
         async def update_budget(

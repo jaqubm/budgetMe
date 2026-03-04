@@ -29,6 +29,7 @@ class BudgetCreate(BaseModel):
     year: Year
     month: Month
     value: Annotated[float, Field(ge=0.0, description="Budget value (non-negative)")] = 0.0
+    reoccur: bool = False
     category_name: Name
     category_type: CategoryType
 
@@ -42,8 +43,16 @@ class BudgetUpdate(BaseModel):
     year: Optional[Year] = None
     month: Optional[Month] = None
     value: Optional[Annotated[float, Field(ge=0.0, description="Budget value (non-negative)")]] = None
+    reoccur: Optional[bool] = None
     category_name: Optional[Name] = None
     category_type: Optional[CategoryType] = None
+
+
+class BudgetCloneRequest(BaseModel):
+    """Schema for requesting a clone of reoccurring budgets into a target month."""
+
+    year: Year
+    month: Month
 
 
 class BudgetResponse(BaseModel):
@@ -54,4 +63,6 @@ class BudgetResponse(BaseModel):
     year: Year
     month: Month
     value: float
+    reoccur: bool
+    cloned_from_id: Optional[int] = None
     category: CategoryInfo

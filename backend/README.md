@@ -291,6 +291,8 @@ The API is available at `http://localhost:8000`.
 | `year` | `INTEGER` | NOT NULL, indexed | `2000–2100` |
 | `month` | `INTEGER` | NOT NULL, indexed | `1–12` |
 | `value` | `FLOAT` | NOT NULL, default `0.0` | Non-negative monetary value |
+| `reoccur` | `BOOLEAN` | NOT NULL, default `false`, indexed | Clone this budget into the next month via `/budget/clone` |
+| `cloned_from_id` | `INTEGER` \| NULL | FK → `budget.id` **ON DELETE SET NULL**, indexed | ID of the source budget this entry was cloned from |
 | `category_id` | `INTEGER` | FK → `category.id` **ON DELETE CASCADE**, indexed | |
 
 ### Migrations
@@ -305,6 +307,7 @@ Managed by **Alembic** with autogenerate. File naming convention: `{slug}_{YYYY}
 | `add_cascade_delete_budget_on_category_2026_03_03-…` | Recreates `category_id` FK with `ON DELETE CASCADE` |
 | `replace_date_with_year_and_month_in_2026_03_03-…` | Drops `date` column; adds indexed `year` + `month` columns |
 | `add_reoccur_to_category_2026_03_04-32bbe059a9ea` | Adds indexed `reoccur` boolean column to `category` (default `false`) |
+| `add_reoccur_and_cloned_from_id_to_budget_2026_03_04-dcad8f0a8ed6` | Adds indexed `reoccur` boolean and nullable `cloned_from_id` self-FK to `budget` |
 
 Common Alembic commands:
 
@@ -440,6 +443,7 @@ All endpoints require authentication. The `user_id` is derived from the Bearer t
 |---|---|---|---|---|
 | POST | `/budget` | ✅ | 201 | Create a budget entry |
 | GET | `/budget` | ✅ | 200 | List budgets for a given year/month |
+| POST | `/budget/clone` | ✅ | 200 | Clone reoccurring budgets from the previous month |
 | PATCH | `/budget/{budget_id}` | ✅ | 200 | Partially update a budget entry |
 | DELETE | `/budget/{budget_id}` | ✅ | 204 | Delete a budget entry |
 
@@ -464,6 +468,7 @@ All endpoints require authentication. The `user_id` is derived from the Bearer t
 | `year` | integer | 2000–2100 | ✅ |
 | `month` | integer | 1–12 | ✅ |
 | `value` | float | ≥ 0.0, default `0.0` | No |
+| `reoccur` | boolean | default `false` | No |
 | `category_name` | string | 1–255 chars, whitespace stripped | ✅ |
 | `category_type` | string | `income` \| `expense` \| `saving` | ✅ |
 
@@ -478,6 +483,8 @@ If a category matching `(category_name, category_type)` does not yet exist for t
   "year": 2026,
   "month": 3,
   "value": 1500.00,
+  "reoccur": true,
+  "cloned_from_id": null,
   "category": {
     "id": 1,
     "name": "Housing",
@@ -519,6 +526,7 @@ All body fields are optional. Only supplied fields are updated.
 | `year` | integer \| null | 2000–2100 |
 | `month` | integer \| null | 1–12 |
 | `value` | float \| null | ≥ 0.0 |
+| `reoccur` | boolean \| null | `true` or `false` |
 | `category_name` | string \| null | 1–255 chars, whitespace stripped |
 | `category_type` | string \| null | `income` \| `expense` \| `saving` |
 
