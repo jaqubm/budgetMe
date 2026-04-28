@@ -1,2 +1,0 @@
-[tool.poetry.workspace]
-members = ["backend"]
