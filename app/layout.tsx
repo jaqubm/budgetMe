@@ -7,7 +7,17 @@ import { HtmlLang } from '@/app/components/HtmlLang';
 
 export const metadata: Metadata = {
   title: 'budgetMe',
-  description: 'Personal budgeting — data stored on your Google Drive',
+  description: 'Track income, expenses and savings — all stored privately on your Google Drive.',
+  openGraph: {
+    title: 'budgetMe',
+    description: 'Track income, expenses and savings — all stored privately on your Google Drive.',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'budgetMe',
+    description: 'Track income, expenses and savings — all stored privately on your Google Drive.',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
