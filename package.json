@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--localstorage-file=/tmp/budgetme-ls' next dev --port 5137",
+    "dev": "NODE_OPTIONS='--localstorage-file=/tmp/budgetme-ls --disable-warning=DEP0169' next dev --port 5137",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
