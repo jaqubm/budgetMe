@@ -171,18 +171,24 @@ export const translations: Record<Lang, Translations> = {
   },
 };
 
+const numberFormats: Record<Lang, Intl.NumberFormat> = {
+  en: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }),
+  pl: new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 2 }),
+};
+
 export function fmt(n: number, lang: Lang): string {
-  if (lang === 'pl') {
-    return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 2 }).format(n);
-  }
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
+  return numberFormats[lang].format(n);
 }
 
 export function fmtShort(n: number, lang: Lang): string {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
   if (lang === 'pl') {
-    return n >= 1000
-      ? (n / 1000).toFixed(1).replace('.', ',') + ' tys. zł'
-      : n.toFixed(0) + ' zł';
+    return abs >= 1000
+      ? sign + (abs / 1000).toFixed(1).replace('.', ',') + ' tys. zł'
+      : sign + Math.round(abs).toString() + ' zł';
   }
-  return n >= 1000 ? '$' + (n / 1000).toFixed(1) + 'k' : '$' + n.toFixed(0);
+  return abs >= 1000
+    ? sign + '$' + (abs / 1000).toFixed(1) + 'k'
+    : sign + '$' + Math.round(abs).toString();
 }
