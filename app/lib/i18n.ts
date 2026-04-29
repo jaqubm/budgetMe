@@ -53,8 +53,6 @@ export interface Translations {
   signingIn: string;
   tagline: string;
   driveDisclaimer: string;
-  plannedBannerVerified: (n: number) => string;
-  plannedBannerPlanned: (n: number) => string;
   months: string[];
 }
 
@@ -110,8 +108,6 @@ export const translations: Record<Lang, Translations> = {
     signingIn: 'Signing in\u2026',
     tagline: 'Your finances, stored\nonly on your Google Drive.',
     driveDisclaimer: 'budgetMe only accesses files it creates in\nyour Google Drive. Nothing else.',
-    plannedBannerVerified: (n) => `${n} verified`,
-    plannedBannerPlanned: (n) => `${n} planned`,
     months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
   },
   pl: {
@@ -165,8 +161,6 @@ export const translations: Record<Lang, Translations> = {
     signingIn: 'Logowanie\u2026',
     tagline: 'Twoje finanse, przechowywane\nwyłącznie na Twoim Dysku Google.',
     driveDisclaimer: 'budgetMe uzyskuje dostęp tylko do plików,\nktóre sam tworzy na Twoim Dysku Google. Nic więcej.',
-    plannedBannerVerified: (n) => `${n} zweryfikowane`,
-    plannedBannerPlanned: (n) => `${n} planowane`,
     months: ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'],
   },
 };
