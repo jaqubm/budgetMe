@@ -10,7 +10,7 @@ A personal budgeting web app with no database. All data is stored as CSV files o
 | Auth | NextAuth.js v5 + Google OAuth2 |
 | Data | Google Drive API — CSV files |
 | Styling | Tailwind CSS v4 (mobile-first) |
-| Hosting | Azure Static Web Apps |
+| Hosting | Vercel |
 
 ## How It Works
 
@@ -85,7 +85,3 @@ yarn start    # Serve production build
 yarn lint     # ESLint
 yarn test     # Vitest unit tests
 ```
-
-## Deployment
-
-The app deploys automatically to Azure Static Web Apps on push to `main` via GitHub Actions (`.github/workflows/deployment.yml`). Set the same four environment variables in your Azure Static Web App's Configuration panel.
