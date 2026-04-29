@@ -3,8 +3,8 @@ import { LogoMark } from '@/app/components/Logo';
 export default function DashboardLoading() {
   return (
     <>
-      {/* ── Mobile skeleton ─────────────────────────────── */}
-      <div className="loading-mobile" style={{ height: '100svh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
+      {/* ── Mobile skeleton (hidden on md+) ─────────────────── */}
+      <div className="flex md:hidden" style={{ flexDirection: 'column', height: '100svh', background: 'var(--bg)', overflow: 'hidden' }}>
         {/* Header — matches Header.tsx exactly */}
         <div style={{ padding: '10px 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -66,8 +66,8 @@ export default function DashboardLoading() {
         </div>
       </div>
 
-      {/* ── Desktop skeleton ─────────────────────────────── */}
-      <div className="loading-desktop" style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      {/* ── Desktop skeleton (hidden below md) ──────────────── */}
+      <div className="hidden md:flex" style={{ flexDirection: 'column', height: '100vh', background: 'var(--bg)' }}>
         {/* Top nav — matches DashboardClient desktop nav exactly */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -95,12 +95,6 @@ export default function DashboardLoading() {
       </div>
 
       <style>{`
-        .loading-mobile  { display: flex;  }
-        .loading-desktop { display: none;  }
-        @media (min-width: 768px) {
-          .loading-mobile  { display: none;  }
-          .loading-desktop { display: flex;  }
-        }
         @keyframes shimmer {
           0%   { background-position: -200% 0; }
           100% { background-position:  200% 0; }
