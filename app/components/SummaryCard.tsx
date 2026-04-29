@@ -23,6 +23,7 @@ export function SummaryCard({ income, expenses, savings, isFuture, startBalance,
 
   const tI = aI + pI, tE = aE + pE, tS = aS + pS;
   const balance = startBalance + tI - tE - tS;
+  const hasData = tI > 0 || tE > 0 || tS > 0;
   const total = tI || 1;
 
   const expPct = Math.min(100, (tE / total) * 100);
@@ -68,9 +69,11 @@ export function SummaryCard({ income, expenses, savings, isFuture, startBalance,
 
       <div style={{ marginBottom: 12 }}>
         <div style={{ height: 6, borderRadius: 3, background: 'oklch(100% 0 0 / 0.12)', overflow: 'hidden', display: 'flex', marginBottom: isFuture ? 4 : 0 }}>
-          <div style={{ width: `${incPct}%`, background: 'var(--income-mid)', transition: 'width 0.5s' }} />
-          <div style={{ width: `${expPct}%`, background: 'var(--expense-mid)', transition: 'width 0.5s' }} />
-          <div style={{ width: `${savPct}%`, background: 'var(--savings-mid)', transition: 'width 0.5s' }} />
+          {hasData && <>
+            <div style={{ width: `${incPct}%`, background: 'var(--income-mid)', transition: 'width 0.5s' }} />
+            <div style={{ width: `${expPct}%`, background: 'var(--expense-mid)', transition: 'width 0.5s' }} />
+            <div style={{ width: `${savPct}%`, background: 'var(--savings-mid)', transition: 'width 0.5s' }} />
+          </>}
         </div>
         {isFuture && (
           <>

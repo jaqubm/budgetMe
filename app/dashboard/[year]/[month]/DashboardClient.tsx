@@ -350,7 +350,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
         )}
       </div>
 
-      <div style={{ padding: '10px 14px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 16px))', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '10px 14px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 16px))', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             {t.total} {CAT_DEFS.find(c => c.key === activeTab)!.label}
