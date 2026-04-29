@@ -1,9 +1,6 @@
 'use client';
 import type { Entry } from '@/lib/types';
-
-const fmt = (n: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
-const fmtShort = (n: number) => n >= 1000 ? '$' + (n / 1000).toFixed(1) + 'k' : '$' + n.toFixed(0);
+import { useT } from './LanguageContext';
 
 const sumActual  = (arr: Entry[]) => arr.filter(e => !e.planned).reduce((a, b) => a + b.amount, 0);
 const sumPlanned = (arr: Entry[]) => arr.filter(e => e.planned).reduce((a, b) => a + b.amount, 0);
@@ -16,6 +13,8 @@ interface Props {
 }
 
 export function SummaryBar({ income, expenses, savings, isFutureMonth }: Props) {
+  const { t, fmt, fmtShort } = useT();
+
   const aI = sumActual(income),  pI = sumPlanned(income);
   const aE = sumActual(expenses), pE = sumPlanned(expenses);
   const aS = sumActual(savings),  pS = sumPlanned(savings);
@@ -26,6 +25,12 @@ export function SummaryBar({ income, expenses, savings, isFutureMonth }: Props) 
   const expPct = Math.min(100, (tE / total) * 100);
   const savPct = Math.min(100, (tS / total) * 100);
   const incPct = Math.max(0, 100 - expPct - savPct);
+
+  const legend = [
+    { label: t.income,   actual: aI, planned: pI, dot: 'var(--income-mid)'  },
+    { label: t.expenses, actual: aE, planned: pE, dot: 'var(--expense-mid)' },
+    { label: t.savings,  actual: aS, planned: pS, dot: 'var(--savings-mid)' },
+  ];
 
   return (
     <div style={{
@@ -42,7 +47,7 @@ export function SummaryBar({ income, expenses, savings, isFutureMonth }: Props) 
     }}>
       <div style={{ flexShrink: 0 }}>
         <div style={{ fontSize: 10.5, fontWeight: 600, color: 'oklch(100% 0 0 / 0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-          {isFutureMonth ? 'Projected balance' : 'Balance'}
+          {isFutureMonth ? t.projectedBalance : t.balance}
           {isFutureMonth && (
             <span style={{ fontSize: 8.5, fontWeight: 700, background: 'oklch(100% 0 0 / 0.1)', padding: '1px 5px', borderRadius: 3, letterSpacing: '0.06em' }}>FORECAST</span>
           )}
@@ -59,17 +64,13 @@ export function SummaryBar({ income, expenses, savings, isFutureMonth }: Props) 
           <div style={{ width: `${savPct}%`, background: 'var(--savings-mid)', transition: 'width 0.5s' }} />
         </div>
         <div style={{ display: 'flex', gap: 20 }}>
-          {([
-            { label: 'Income',   actual: aI, planned: pI, dot: 'var(--income-mid)'  },
-            { label: 'Expenses', actual: aE, planned: pE, dot: 'var(--expense-mid)' },
-            { label: 'Savings',  actual: aS, planned: pS, dot: 'var(--savings-mid)' },
-          ] as const).map(({ label, actual, planned, dot }) => (
+          {legend.map(({ label, actual, planned, dot }) => (
             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: dot, flexShrink: 0 }} />
               <span style={{ fontSize: 11, color: 'oklch(100% 0 0 / 0.5)', fontWeight: 500 }}>{label}</span>
               <span style={{ fontSize: 12, color: 'white', fontWeight: 700 }}>{fmtShort(actual + planned)}</span>
               {isFutureMonth && planned > 0 && (
-                <span style={{ fontSize: 10, color: 'oklch(100% 0 0 / 0.35)', fontWeight: 500 }}>({fmtShort(actual)} actual)</span>
+                <span style={{ fontSize: 10, color: 'oklch(100% 0 0 / 0.35)', fontWeight: 500 }}>({fmtShort(actual)} {t.actual})</span>
               )}
             </div>
           ))}
