@@ -1,10 +1,13 @@
 'use client';
+import { useT } from './LanguageContext';
 
 interface Props {
   onDismiss: () => void;
 }
 
 export function ConstantBanner({ onDismiss }: Props) {
+  const { t } = useT();
+
   return (
     <div style={{
       margin: '10px 14px 0', padding: '10px 14px', borderRadius: 10,
@@ -14,8 +17,8 @@ export function ConstantBanner({ onDismiss }: Props) {
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
         <span style={{ fontSize: 14 }}>📋</span>
         <div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--savings)', marginBottom: 1 }}>Pre-populated from last month</div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-2)', lineHeight: 1.4 }}>Recurring entries were carried over. You can remove or toggle them off.</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--savings)', marginBottom: 1 }}>{t.constantBannerTitle}</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-2)', lineHeight: 1.4 }}>{t.constantBannerBody}</div>
         </div>
       </div>
       <button
