@@ -1,7 +1,6 @@
 'use client';
 import { ChevronLeft, ChevronRight, ClockIcon } from './icons';
-
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+import { useT } from './LanguageContext';
 
 function parseYM(ym: string) {
   const [y, m] = ym.split('-');
@@ -23,12 +22,13 @@ function nextYM(ym: string) {
 }
 
 interface Props {
-  ym: string;         // "YYYY-MM"
-  todayYm: string;    // current real month
+  ym: string;
+  todayYm: string;
   onChange: (ym: string) => void;
 }
 
 export function MonthPicker({ ym, todayYm, onChange }: Props) {
+  const { t } = useT();
   const { year, month } = parseYM(ym);
   const isFuture = ym > todayYm;
   const isToday  = ym === todayYm;
@@ -45,10 +45,10 @@ export function MonthPicker({ ym, todayYm, onChange }: Props) {
 
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.3px' }}>
-            {MONTHS[month - 1]}
+            {t.months[month - 1]}
           </div>
           <div style={{ fontSize: 12, color: isFuture ? 'oklch(58% 0.07 250)' : 'var(--text-3)', fontWeight: isFuture ? 600 : 500 }}>
-            {isFuture ? `${year} · Forecast` : year}
+            {isFuture ? `${year} · ${t.forecast}` : year}
           </div>
         </div>
 
@@ -79,7 +79,7 @@ export function MonthPicker({ ym, todayYm, onChange }: Props) {
               gap: 5,
             }}
           >
-            <ClockIcon /> Today
+            <ClockIcon /> {t.today}
           </button>
         </div>
       )}
