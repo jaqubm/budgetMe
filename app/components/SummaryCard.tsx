@@ -30,10 +30,6 @@ export function SummaryCard({ income, expenses, savings, isFuture, startBalance,
   const savPct = Math.min(100, (tS / total) * 100);
   const incPct = Math.max(0, 100 - expPct - savPct);
 
-  const aExpPct = Math.min(100, (aE / total) * 100);
-  const aSavPct = Math.min(100, (aS / total) * 100);
-  const aIncPct = Math.max(0, 100 - aExpPct - aSavPct);
-
   const legend = [
     { label: t.income,   actual: aI, planned: pI, color: 'var(--income-mid)'  },
     { label: t.expenses, actual: aE, planned: pE, color: 'var(--expense-mid)' },
@@ -68,23 +64,13 @@ export function SummaryCard({ income, expenses, savings, isFuture, startBalance,
       </div>
 
       <div style={{ marginBottom: 12 }}>
-        <div style={{ height: 6, borderRadius: 3, background: 'oklch(100% 0 0 / 0.12)', overflow: 'hidden', display: 'flex', marginBottom: isFuture ? 4 : 0 }}>
+        <div style={{ height: 6, borderRadius: 3, background: 'oklch(100% 0 0 / 0.12)', overflow: 'hidden', display: 'flex' }}>
           {hasData && <>
             <div style={{ width: `${incPct}%`, background: 'var(--income-mid)', transition: 'width 0.5s' }} />
             <div style={{ width: `${expPct}%`, background: 'var(--expense-mid)', transition: 'width 0.5s' }} />
             <div style={{ width: `${savPct}%`, background: 'var(--savings-mid)', transition: 'width 0.5s' }} />
           </>}
         </div>
-        {isFuture && (
-          <>
-            <div style={{ height: 3, borderRadius: 2, background: 'oklch(100% 0 0 / 0.08)', overflow: 'hidden', display: 'flex' }}>
-              <div style={{ width: `${aIncPct}%`, background: 'oklch(100% 0 0 / 0.4)', transition: 'width 0.5s' }} />
-              <div style={{ width: `${aExpPct}%`, background: 'oklch(100% 0 0 / 0.3)', transition: 'width 0.5s' }} />
-              <div style={{ width: `${aSavPct}%`, background: 'oklch(100% 0 0 / 0.35)', transition: 'width 0.5s' }} />
-            </div>
-            <div style={{ fontSize: 9.5, opacity: 0.35, marginTop: 2, fontWeight: 500 }}>{t.thinBarNote}</div>
-          </>
-        )}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
