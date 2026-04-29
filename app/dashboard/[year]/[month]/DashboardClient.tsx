@@ -380,7 +380,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
 }
 
 function VerifyModalForm({ entry, color, onClose, onVerify }: { entry: Entry; color: string; onClose: () => void; onVerify: (amount: number) => void }) {
-  const { t, fmt } = useT();
+  const { t } = useT();
   const [amount, setAmount] = useState(String(entry.amount));
   const [error, setError]   = useState('');
 
