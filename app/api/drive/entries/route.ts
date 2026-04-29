@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import { getEntries, initMonth } from '@/lib/google-drive';
 import type { Category } from '@/lib/types';
 
