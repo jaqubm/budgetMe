@@ -2,9 +2,7 @@
 import type { Category, Entry } from '@/lib/types';
 import { DesktopEntryRow } from './DesktopEntryRow';
 import { PlusIcon } from './icons';
-
-const fmt = (n: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
+import { useT } from './LanguageContext';
 
 const sumActual  = (arr: Entry[]) => arr.filter(e => !e.planned).reduce((a, b) => a + b.amount, 0);
 const sumPlanned = (arr: Entry[]) => arr.filter(e => e.planned).reduce((a, b) => a + b.amount, 0);
@@ -28,6 +26,7 @@ interface Props {
 }
 
 export function CategoryColumn({ cat, entries, isFutureMonth, onAdd, onEdit, onDelete, onToggleConstant, onVerify }: Props) {
+  const { t, fmt } = useT();
   const actual  = sumActual(entries);
   const planned = sumPlanned(entries);
   const hasPending = entries.some(e => e.planned);
@@ -40,7 +39,7 @@ export function CategoryColumn({ cat, entries, isFutureMonth, onAdd, onEdit, onD
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', letterSpacing: '0.02em' }}>{cat.label}</span>
           {hasPending && (
             <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--planned)', background: 'oklch(92% 0.003 260)', padding: '1px 6px', borderRadius: 4 }}>
-              {entries.filter(e => e.planned).length} planned
+              {entries.filter(e => e.planned).length} {t.planned}
             </span>
           )}
         </div>
@@ -48,14 +47,14 @@ export function CategoryColumn({ cat, entries, isFutureMonth, onAdd, onEdit, onD
           onClick={onAdd}
           style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 7, border: 'none', background: cat.light, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: cat.color, fontFamily: 'Plus Jakarta Sans, sans-serif' }}
         >
-          <PlusIcon /> {isFutureMonth ? 'Plan' : 'Add'}
+          <PlusIcon /> {isFutureMonth ? t.plan : t.add}
         </button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '6px' }}>
         {entries.length === 0 ? (
           <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-3)', fontSize: 12.5 }}>
-            {isFutureMonth ? `Plan expected ${cat.label.toLowerCase()}` : `No ${cat.label.toLowerCase()} yet`}
+            {isFutureMonth ? t.planExpected(cat.label.toLowerCase()) : t.noEntriesYet(cat.label.toLowerCase())}
           </div>
         ) : (
           entries.map((entry, i) => (
@@ -74,10 +73,10 @@ export function CategoryColumn({ cat, entries, isFutureMonth, onAdd, onEdit, onD
       </div>
 
       <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexShrink: 0 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t.total}</span>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: cat.color, letterSpacing: '-0.4px' }}>{fmt(actual + planned)}</div>
-          {planned > 0 && <div style={{ fontSize: 10.5, color: 'var(--planned)', fontWeight: 500 }}>{fmt(actual)} actual</div>}
+          {planned > 0 && <div style={{ fontSize: 10.5, color: 'var(--planned)', fontWeight: 500 }}>{fmt(actual)} {t.actual}</div>}
         </div>
       </div>
     </div>
