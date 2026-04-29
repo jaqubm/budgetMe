@@ -1,12 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import type { Category, Entry } from '@/lib/types';
-
-const CATEGORIES: { key: Category; label: string; color: string }[] = [
-  { key: 'income',   label: 'Income',   color: 'var(--income)'  },
-  { key: 'expenses', label: 'Expenses', color: 'var(--expense)' },
-  { key: 'savings',  label: 'Savings',  color: 'var(--savings)' },
-];
+import { useT } from './LanguageContext';
 
 interface FormState {
   date: string;
@@ -23,7 +18,7 @@ interface Props {
   editEntry: Entry | null;
   category: Category;
   isFuture: boolean;
-  currentYm: string; // "YYYY-MM" used for default date
+  currentYm: string;
 }
 
 function Toggle({ value, onChange, color, label, sub }: { value: boolean; onChange: () => void; color: string; label: string; sub: string }) {
@@ -41,7 +36,21 @@ function Toggle({ value, onChange, color, label, sub }: { value: boolean; onChan
 }
 
 export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFuture, currentYm }: Props) {
-  const cat = CATEGORIES.find((c) => c.key === category)!;
+  const { t } = useT();
+
+  const CAT_COLORS: Record<Category, string> = {
+    income:   'var(--income)',
+    expenses: 'var(--expense)',
+    savings:  'var(--savings)',
+  };
+  const CAT_LABELS: Record<Category, string> = {
+    income:   t.income,
+    expenses: t.expenses,
+    savings:  t.savings,
+  };
+
+  const catColor = CAT_COLORS[category];
+  const catLabel = CAT_LABELS[category];
   const defaultDate = `${currentYm}-01`;
 
   const [form, setForm] = useState<FormState>({ date: defaultDate, amount: '', description: '', constant: false, planned: false });
@@ -60,9 +69,9 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
 
   const validate = (): boolean => {
     const e: Partial<Record<keyof FormState, string>> = {};
-    if (!form.description.trim()) e.description = 'Required';
-    if (!form.amount || isNaN(+form.amount) || +form.amount <= 0) e.amount = 'Enter a valid amount';
-    if (!form.date) e.date = 'Required';
+    if (!form.description.trim()) e.description = t.required;
+    if (!form.amount || isNaN(+form.amount) || +form.amount <= 0) e.amount = t.invalidAmount;
+    if (!form.date) e.date = t.required;
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -96,15 +105,15 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
       }}>
         <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
         <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', marginBottom: 18 }}>
-          {editEntry ? 'Edit entry' : `Add ${cat.label} entry`}
+          {editEntry ? t.editEntry : t.addCategoryEntry(catLabel)}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>Description</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>{t.description}</label>
             <input
               style={inp(errors.description)}
-              placeholder="e.g. Monthly Salary"
+              placeholder={t.descriptionPlaceholder}
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
@@ -113,7 +122,7 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
 
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>Amount ($)</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>{t.amount}</label>
               <input
                 type="number" min="0" step="0.01"
                 style={inp(errors.amount)}
@@ -124,7 +133,7 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
               {errors.amount && <div style={{ fontSize: 11, color: 'var(--expense)', marginTop: 3 }}>{errors.amount}</div>}
             </div>
             <div style={{ flex: 1 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>Date</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>{t.date}</label>
               <input
                 type="date"
                 style={inp(errors.date)}
@@ -138,16 +147,16 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
             value={form.planned}
             onChange={() => setForm((f) => ({ ...f, planned: !f.planned }))}
             color="var(--planned)"
-            label="Planned entry"
-            sub="Expected amount — verify when it happens"
+            label={t.plannedEntry}
+            sub={t.plannedEntrySub}
           />
 
           <Toggle
             value={form.constant}
             onChange={() => setForm((f) => ({ ...f, constant: !f.constant }))}
-            color={cat.color}
-            label="Recurring entry"
-            sub="Automatically carry over to next month"
+            color={catColor}
+            label={t.recurringEntry}
+            sub={t.recurringEntrySub}
           />
         </div>
 
@@ -155,12 +164,12 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
           onClick={handleSave}
           style={{
             width: '100%', marginTop: 20, padding: '14px', borderRadius: 12,
-            background: form.planned ? 'var(--planned)' : cat.color,
+            background: form.planned ? 'var(--planned)' : catColor,
             border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 700,
             color: 'white', fontFamily: 'Plus Jakarta Sans, sans-serif',
           }}
         >
-          {editEntry ? 'Save changes' : (form.planned ? 'Add as planned' : 'Add entry')}
+          {editEntry ? t.saveChanges : (form.planned ? t.addAsPlanned : t.addEntry)}
         </button>
       </div>
     </>
