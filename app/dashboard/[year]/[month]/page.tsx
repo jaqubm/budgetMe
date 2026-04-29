@@ -17,7 +17,7 @@ export default async function DashboardPage({ params }: Props) {
   const todayYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const isFutureMth = `${year}-${month}` > todayYm;
 
-  const { wasNew, income, expenses, savings } = await initAndGetMonth(
+  const { wasNew, income, expenses, savings, startBalance } = await initAndGetMonth(
     session.accessToken, year, month
   );
 
@@ -25,9 +25,10 @@ export default async function DashboardPage({ params }: Props) {
     isFutureMth ? entries.map(e => ({ ...e, planned: e.planned ?? true })) : entries;
 
   const initialData: MonthData = {
-    income:   markPlanned(income),
-    expenses: markPlanned(expenses),
-    savings:  markPlanned(savings),
+    income:       markPlanned(income),
+    expenses:     markPlanned(expenses),
+    savings:      markPlanned(savings),
+    startBalance,
   };
 
   return (

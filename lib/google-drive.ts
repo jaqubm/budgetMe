@@ -95,6 +95,46 @@ async function createCSVFile(
   return res.data.id!;
 }
 
+async function readStartBalance(
+  drive: ReturnType<typeof google.drive>,
+  monthFolderId: string
+): Promise<number> {
+  const fileId = await findFile(drive, 'balance.txt', monthFolderId);
+  if (!fileId) return 0;
+  const res = await drive.files.get({ fileId, alt: 'media' }, { responseType: 'text' });
+  const n = parseFloat(res.data as string);
+  return isNaN(n) ? 0 : n;
+}
+
+async function writeStartBalanceFile(
+  drive: ReturnType<typeof google.drive>,
+  monthFolderId: string,
+  amount: number
+): Promise<void> {
+  const fileId = await findFile(drive, 'balance.txt', monthFolderId);
+  const body   = String(amount);
+  if (fileId) {
+    await drive.files.update({ fileId, media: { mimeType: 'text/plain', body } });
+  } else {
+    await drive.files.create({
+      requestBody: { name: 'balance.txt', parents: [monthFolderId] },
+      media: { mimeType: 'text/plain', body },
+      fields: 'id',
+    });
+  }
+}
+
+export async function setStartBalance(
+  accessToken: string,
+  year: string,
+  month: string,
+  amount: number
+): Promise<void> {
+  const drive = driveClient(accessToken);
+  const monthFolderId = await ensureFolderPath(drive, year, month);
+  await writeStartBalanceFile(drive, monthFolderId, amount);
+}
+
 function prevYearMonth(year: string, month: string): { year: string; month: string } {
   let y = parseInt(year);
   let m = parseInt(month);
@@ -115,7 +155,7 @@ export async function initAndGetMonth(
   accessToken: string,
   year: string,
   month: string
-): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[] }> {
+): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[]; startBalance: number }> {
   const drive = driveClient(accessToken);
   const monthFolderId = await ensureFolderPath(drive, year, month);
 
@@ -154,12 +194,13 @@ export async function initAndGetMonth(
     missingIdxs.forEach((i, j) => { fileIds[i] = newIds[j]; });
   }
 
-  // Read all three files in parallel.
-  const allEntries = await Promise.all(
-    fileIds.map(id => id ? readCSVFile(drive, id) : Promise.resolve([]))
-  );
+  // Read all three CSV files and start balance in parallel.
+  const [allEntries, startBalance] = await Promise.all([
+    Promise.all(fileIds.map(id => id ? readCSVFile(drive, id) : Promise.resolve([]))),
+    readStartBalance(drive, monthFolderId),
+  ]);
 
-  return { wasNew, income: allEntries[0], expenses: allEntries[1], savings: allEntries[2] };
+  return { wasNew, income: allEntries[0], expenses: allEntries[1], savings: allEntries[2], startBalance };
 }
 
 export async function getEntries(

@@ -50,6 +50,9 @@ export interface Translations {
   constantBannerBody: string;
   verifyEntry: string;
   saving: string;
+  startBalance: string;
+  startBalanceSub: string;
+  setStartBalance: string;
   continueWithGoogle: string;
   signingIn: string;
   tagline: string;
@@ -106,6 +109,9 @@ export const translations: Record<Lang, Translations> = {
     constantBannerBody: 'Recurring entries were carried over. You can remove or toggle them off.',
     verifyEntry: 'Verify entry',
     saving: 'Saving…',
+    startBalance: 'Start balance',
+    startBalanceSub: 'Opening balance for this month',
+    setStartBalance: 'Set start balance',
     continueWithGoogle: 'Continue with Google',
     signingIn: 'Signing in\u2026',
     tagline: 'Your finances, stored\nonly on your Google Drive.',
@@ -160,6 +166,9 @@ export const translations: Record<Lang, Translations> = {
     constantBannerBody: 'Wpisy cykliczne zostały przeniesione. Możesz je usunąć lub wyłączyć.',
     verifyEntry: 'Weryfikuj wpis',
     saving: 'Zapisywanie…',
+    startBalance: 'Saldo początkowe',
+    startBalanceSub: 'Saldo na początku miesiąca',
+    setStartBalance: 'Ustaw saldo początkowe',
     continueWithGoogle: 'Kontynuuj przez Google',
     signingIn: 'Logowanie\u2026',
     tagline: 'Twoje finanse, przechowywane\nwyłącznie na Twoim Dysku Google.',

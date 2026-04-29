@@ -6,20 +6,22 @@ const sumActual  = (arr: Entry[]) => arr.filter(e => !e.planned).reduce((a, b) =
 const sumPlanned = (arr: Entry[]) => arr.filter(e => e.planned).reduce((a, b) => a + b.amount, 0);
 
 interface Props {
-  income:        Entry[];
-  expenses:      Entry[];
-  savings:       Entry[];
-  isFutureMonth: boolean;
+  income:             Entry[];
+  expenses:           Entry[];
+  savings:            Entry[];
+  isFutureMonth:      boolean;
+  startBalance:       number;
+  onEditStartBalance: () => void;
 }
 
-export function SummaryBar({ income, expenses, savings, isFutureMonth }: Props) {
+export function SummaryBar({ income, expenses, savings, isFutureMonth, startBalance, onEditStartBalance }: Props) {
   const { t, fmt, fmtShort } = useT();
 
   const aI = sumActual(income),  pI = sumPlanned(income);
   const aE = sumActual(expenses), pE = sumPlanned(expenses);
   const aS = sumActual(savings),  pS = sumPlanned(savings);
   const tI = aI + pI, tE = aE + pE, tS = aS + pS;
-  const balance = tI - tE - tS;
+  const balance = startBalance + tI - tE - tS;
   const total = tI || 1;
 
   const expPct = Math.min(100, (tE / total) * 100);
@@ -55,6 +57,14 @@ export function SummaryBar({ income, expenses, savings, isFutureMonth }: Props) 
         <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.8px', color: balance < 0 ? 'oklch(70% 0.18 22)' : 'white' }}>
           {fmt(balance)}
         </div>
+        <button
+          onClick={onEditStartBalance}
+          style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 5, background: 'oklch(100% 0 0 / 0.08)', border: 'none', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}
+        >
+          <span style={{ fontSize: 10.5, color: 'oklch(100% 0 0 / 0.5)', fontWeight: 500 }}>{t.startBalance}:</span>
+          <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{fmt(startBalance)}</span>
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="oklch(100% 0 0 / 0.5)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
       </div>
 
       <div style={{ flex: 1 }}>

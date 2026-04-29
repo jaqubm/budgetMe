@@ -6,13 +6,15 @@ const sumActual  = (arr: Entry[]) => arr.filter(e => !e.planned).reduce((a, b) =
 const sumPlanned = (arr: Entry[]) => arr.filter(e => e.planned).reduce((a, b) => a + b.amount, 0);
 
 interface Props {
-  income:   Entry[];
-  expenses: Entry[];
-  savings:  Entry[];
-  isFuture: boolean;
+  income:              Entry[];
+  expenses:            Entry[];
+  savings:             Entry[];
+  isFuture:            boolean;
+  startBalance:        number;
+  onEditStartBalance:  () => void;
 }
 
-export function SummaryCard({ income, expenses, savings, isFuture }: Props) {
+export function SummaryCard({ income, expenses, savings, isFuture, startBalance, onEditStartBalance }: Props) {
   const { t, fmt, fmtShort } = useT();
 
   const aI = sumActual(income),  pI = sumPlanned(income);
@@ -20,7 +22,7 @@ export function SummaryCard({ income, expenses, savings, isFuture }: Props) {
   const aS = sumActual(savings),  pS = sumPlanned(savings);
 
   const tI = aI + pI, tE = aE + pE, tS = aS + pS;
-  const balance = tI - tE - tS;
+  const balance = startBalance + tI - tE - tS;
   const total = tI || 1;
 
   const expPct = Math.min(100, (tE / total) * 100);
@@ -96,6 +98,17 @@ export function SummaryCard({ income, expenses, savings, isFuture }: Props) {
           </div>
         ))}
       </div>
+
+      <button
+        onClick={onEditStartBalance}
+        style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'oklch(100% 0 0 / 0.07)', border: 'none', borderRadius: 8, padding: '7px 10px', cursor: 'pointer' }}
+      >
+        <span style={{ fontSize: 11, color: 'oklch(100% 0 0 / 0.55)', fontWeight: 500 }}>{t.startBalance}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 12, color: 'white', fontWeight: 700 }}>{fmt(startBalance)}</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="oklch(100% 0 0 / 0.5)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+      </button>
     </div>
   );
 }

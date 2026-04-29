@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import type { Category, Entry, MonthData } from '@/lib/types';
@@ -56,6 +56,8 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
   const [activeTab, setActiveTab]   = useState<Category>('income');
   const [showBanner, setShowBanner] = useState(wasNew && !isFuture);
   const [loading, setLoading]       = useState(false);
+  const [startBal, setStartBal]     = useState(initialData.startBalance);
+  const [editingBal, setEditingBal] = useState(false);
 
   const [sheet, setSheet]             = useState<{ open: boolean; editIndex: number | null }>({ open: false, editIndex: null });
   const [verifySheet, setVerifySheet] = useState<{ open: boolean; index: number | null }>({ open: false, index: null });
@@ -88,6 +90,21 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
       setLoading(false);
     }
   }, [apiBase]);
+
+  const handleSaveStartBal = async (amount: number) => {
+    setStartBal(amount);
+    setEditingBal(false);
+    setLoading(true);
+    try {
+      await fetch('/api/drive/balance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year, month, amount }),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const mobileEntries  = getEntries(activeTab);
   const mobileCatColor = CAT_DEFS.find(c => c.key === activeTab)!.color;
@@ -229,7 +246,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
           </div>
         </div>
 
-        <SummaryBar income={data.income ?? []} expenses={data.expenses ?? []} savings={data.savings ?? []} isFutureMonth={isFuture} />
+        <SummaryBar income={data.income ?? []} expenses={data.expenses ?? []} savings={data.savings ?? []} isFutureMonth={isFuture} startBalance={startBal} onEditStartBalance={() => setEditingBal(true)} />
 
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
           {CAT_DEFS.map(cat => (
@@ -295,6 +312,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
           );
         })()}
       </div>
+      <StartBalanceEditor visible={editingBal} current={startBal} isDesktop={true} onSave={handleSaveStartBal} onClose={() => setEditingBal(false)} />
       <SavingToast visible={loading} isDesktop={true} />
       </>
     );
@@ -305,7 +323,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
     <div style={{ height: '100svh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
       <Header />
       <MonthPicker ym={ym} todayYm={todayYm} onChange={handleChangeMonth} />
-      <SummaryCard income={data.income ?? []} expenses={data.expenses ?? []} savings={data.savings ?? []} isFuture={isFuture} />
+      <SummaryCard income={data.income ?? []} expenses={data.expenses ?? []} savings={data.savings ?? []} isFuture={isFuture} startBalance={startBal} onEditStartBalance={() => setEditingBal(true)} />
 
       {showBanner && !isFuture && <ConstantBanner onDismiss={() => setShowBanner(false)} />}
       {isFuture && plannedCount > 0 && <PlannedBanner plannedCount={plannedCount} verifiedCount={verifiedCount} />}
@@ -377,8 +395,84 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
         onVerify={handleMobileVerify}
         color={mobileCatColor}
       />
+      <StartBalanceEditor visible={editingBal} current={startBal} isDesktop={false} onSave={handleSaveStartBal} onClose={() => setEditingBal(false)} />
       <SavingToast visible={loading} isDesktop={false} />
     </div>
+  );
+}
+
+function StartBalanceEditor({ visible, current, isDesktop, onSave, onClose }: {
+  visible: boolean; current: number; isDesktop: boolean;
+  onSave: (n: number) => void; onClose: () => void;
+}) {
+  const { t, lang } = useT();
+  const [val, setVal]   = useState(String(current));
+  const [err, setErr]   = useState('');
+
+  useEffect(() => {
+    if (visible) { setVal(String(current)); setErr(''); }
+  }, [visible, current]);
+
+  const commit = () => {
+    const n = parseFloat(val);
+    if (isNaN(n)) { setErr(t.invalidAmount); return; }
+    onSave(n);
+  };
+
+  const inp: React.CSSProperties = {
+    width: '100%', padding: '12px 14px', borderRadius: 10,
+    border: `1.5px solid ${err ? 'var(--expense)' : 'var(--border)'}`,
+    fontSize: 20, fontWeight: 700, textAlign: 'center',
+    fontFamily: 'Plus Jakarta Sans, sans-serif',
+    color: 'var(--text)', background: 'var(--bg)', outline: 'none',
+    letterSpacing: '-0.5px',
+  };
+
+  const content = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-3)', fontWeight: 500 }}>{t.startBalanceSub}</div>
+      <div>
+        <input
+          type="number" step="0.01" autoFocus
+          style={inp}
+          value={val}
+          placeholder={lang === 'pl' ? '0,00' : '0.00'}
+          onChange={e => { setVal(e.target.value); setErr(''); }}
+          onKeyDown={e => e.key === 'Enter' && commit()}
+        />
+        {err && <div style={{ fontSize: 11, color: 'var(--expense)', marginTop: 3 }}>{err}</div>}
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={onClose} style={{ flex: 1, padding: '11px', borderRadius: 10, border: '1.5px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', fontFamily: 'inherit' }}>{t.cancel}</button>
+        <button onClick={commit} style={{ flex: 2, padding: '11px', borderRadius: 10, border: 'none', background: 'var(--text)', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'white', fontFamily: 'inherit' }}>{t.saveChanges}</button>
+      </div>
+    </div>
+  );
+
+  if (isDesktop) {
+    return (
+      <Modal visible={visible} onClose={onClose} title={t.setStartBalance} width={360}>
+        {content}
+      </Modal>
+    );
+  }
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'oklch(0% 0 0 / 0.35)', zIndex: 50, opacity: visible ? 1 : 0, pointerEvents: visible ? 'auto' : 'none', transition: 'opacity 0.25s' }} />
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 51,
+        background: 'var(--surface)', borderRadius: '20px 20px 0 0',
+        padding: '20px 20px 40px',
+        transform: visible ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
+        boxShadow: '0 -4px 32px oklch(0% 0 0 / 0.15)',
+      }}>
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
+        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', marginBottom: 18 }}>{t.setStartBalance}</div>
+        {content}
+      </div>
+    </>
   );
 }
 

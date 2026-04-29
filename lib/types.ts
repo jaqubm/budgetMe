@@ -13,6 +13,7 @@ export interface MonthData {
   income: Entry[];
   expenses: Entry[];
   savings: Entry[];
+  startBalance: number;
 }
 
 export const CATEGORIES: { key: Category; label: string }[] = [
