@@ -171,6 +171,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
     };
 
     return (
+      <>
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
         {/* Top nav */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
@@ -295,6 +296,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
         })()}
       </div>
       <SavingToast visible={loading} isDesktop={true} />
+      </>
     );
   }
 
