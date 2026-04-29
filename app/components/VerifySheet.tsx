@@ -37,10 +37,10 @@ export function VerifySheet({ visible, onClose, entry, onVerify, color }: Props)
     <>
       <div
         onClick={onClose}
-        style={{ position: 'absolute', inset: 0, background: 'oklch(0% 0 0 / 0.35)', zIndex: 50, opacity: visible ? 1 : 0, pointerEvents: visible ? 'auto' : 'none', transition: 'opacity 0.25s' }}
+        style={{ position: 'fixed', inset: 0, background: 'oklch(0% 0 0 / 0.35)', zIndex: 50, opacity: visible ? 1 : 0, pointerEvents: visible ? 'auto' : 'none', transition: 'opacity 0.25s' }}
       />
       <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 51,
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 51,
         background: 'var(--surface)', borderRadius: '20px 20px 0 0',
         padding: '20px 20px 40px',
         transform: visible ? 'translateY(0)' : 'translateY(100%)',
