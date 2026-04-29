@@ -11,6 +11,7 @@
 | Layer | Technology |
 |---|---|
 | Framework | Next.js (App Router) |
+| Routing | Next.js built-in router (`next/navigation`, `next/link`) — no external router library |
 | Authentication | NextAuth.js + Google OAuth2 |
 | Data storage | Google Drive API (CSV files) |
 | Hosting | Azure App Service |
@@ -125,10 +126,18 @@ On the first visit to a given month the application:
 
 ## Application Architecture (Next.js App Router)
 
+All navigation relies exclusively on the **Next.js built-in router**:
+- `<Link href="...">` from `next/link` for client-side navigation between months
+- `redirect()` from `next/navigation` (Server Components) for auth-guard redirects
+- `useRouter()` from `next/navigation` (Client Components) for programmatic navigation (e.g. month picker)
+- Dynamic segments (`[year]`, `[month]`) resolved via `params` in Server Components
+
+No external router library (e.g. React Router, TanStack Router) is used.
+
 ```
 /app
 ├── layout.tsx                  # Root layout, SessionProvider
-├── page.tsx                    # Home page / redirect to /dashboard
+├── page.tsx                    # Home page / redirect() to /dashboard/[year]/[month]
 ├── api/
 │   ├── auth/
 │   │   └── [...nextauth]/
@@ -147,7 +156,7 @@ On the first visit to a given month the application:
 │   ├── EntryRow.tsx            # Single entry row with constant toggle, edit, delete
 │   ├── AddEntryForm.tsx        # Form for adding a new entry (includes constant checkbox)
 │   ├── MonthlySummary.tsx      # Monthly summary (total per category + balance)
-│   ├── MonthPicker.tsx         # Month navigation (arrows + swipe on mobile)
+│   ├── MonthPicker.tsx         # Month navigation — uses useRouter() from next/navigation to push new [year]/[month] route
 │   ├── ConstantBanner.tsx      # Dismissible banner shown when month was pre-populated
 │   └── Header.tsx              # Header with user info and sign-out
 └── lib/
