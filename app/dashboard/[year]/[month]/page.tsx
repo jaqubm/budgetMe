@@ -11,7 +11,7 @@ interface Props {
 export default async function DashboardPage({ params }: Props) {
   const { year, month } = await params;
   const session = await auth();
-  if (!session?.accessToken) redirect('/sign-in');
+  if (!session?.accessToken || session.error === 'RefreshTokenError') redirect('/sign-in');
 
   const wasNew = await initMonth(session.accessToken, year, month);
 

@@ -5,7 +5,7 @@ import type { Category } from '@/lib/types';
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session?.accessToken) {
+  if (!session?.accessToken || session.error === 'RefreshTokenError') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

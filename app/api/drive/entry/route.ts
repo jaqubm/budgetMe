@@ -5,7 +5,7 @@ import type { Category, Entry } from '@/lib/types';
 
 async function getSession() {
   const session = await auth();
-  if (!session?.accessToken) return null;
+  if (!session?.accessToken || session.error === 'RefreshTokenError') return null;
   return session;
 }
 
