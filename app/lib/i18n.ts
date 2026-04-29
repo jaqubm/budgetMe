@@ -49,6 +49,7 @@ export interface Translations {
   constantBannerTitle: string;
   constantBannerBody: string;
   verifyEntry: string;
+  saving: string;
   continueWithGoogle: string;
   signingIn: string;
   tagline: string;
@@ -104,6 +105,7 @@ export const translations: Record<Lang, Translations> = {
     constantBannerTitle: 'Pre-populated from last month',
     constantBannerBody: 'Recurring entries were carried over. You can remove or toggle them off.',
     verifyEntry: 'Verify entry',
+    saving: 'Saving…',
     continueWithGoogle: 'Continue with Google',
     signingIn: 'Signing in\u2026',
     tagline: 'Your finances, stored\nonly on your Google Drive.',
@@ -157,6 +159,7 @@ export const translations: Record<Lang, Translations> = {
     constantBannerTitle: 'Uzupełniono z poprzedniego miesiąca',
     constantBannerBody: 'Wpisy cykliczne zostały przeniesione. Możesz je usunąć lub wyłączyć.',
     verifyEntry: 'Weryfikuj wpis',
+    saving: 'Zapisywanie…',
     continueWithGoogle: 'Kontynuuj przez Google',
     signingIn: 'Logowanie\u2026',
     tagline: 'Twoje finanse, przechowywane\nwyłącznie na Twoim Dysku Google.',

@@ -294,6 +294,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
           );
         })()}
       </div>
+      <SavingToast visible={loading} isDesktop={true} />
     );
   }
 
@@ -374,6 +375,45 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
         onVerify={handleMobileVerify}
         color={mobileCatColor}
       />
+      <SavingToast visible={loading} isDesktop={false} />
+    </div>
+  );
+}
+
+function SavingToast({ visible, isDesktop }: { visible: boolean; isDesktop: boolean }) {
+  const { t } = useT();
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: isDesktop ? '24px' : 'calc(80px + env(safe-area-inset-bottom, 0px))',
+      left: '50%',
+      transform: `translateX(-50%) translateY(${visible ? 0 : 8}px)`,
+      zIndex: 200,
+      background: 'var(--text)',
+      color: 'white',
+      padding: '8px 14px 8px 10px',
+      borderRadius: 20,
+      fontSize: 12.5,
+      fontWeight: 600,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 7,
+      boxShadow: '0 4px 20px oklch(0% 0 0 / 0.3)',
+      opacity: visible ? 1 : 0,
+      pointerEvents: 'none',
+      transition: 'opacity 0.18s, transform 0.18s',
+      whiteSpace: 'nowrap',
+    }}>
+      <div style={{
+        width: 14,
+        height: 14,
+        borderRadius: '50%',
+        border: '2px solid oklch(100% 0 0 / 0.3)',
+        borderTopColor: 'white',
+        animation: 'spin 0.7s linear infinite',
+        flexShrink: 0,
+      }} />
+      {t.saving}
     </div>
   );
 }
