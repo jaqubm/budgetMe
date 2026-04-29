@@ -156,6 +156,24 @@ export async function initAndGetMonth(
   year: string,
   month: string
 ): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[]; startBalance: number }> {
+  try {
+    return await _initAndGetMonth(accessToken, year, month);
+  } catch (err: any) {
+    // Stale folder cache: a cached folder ID was deleted from Drive externally.
+    // Clear cache and retry once so new folders are created cleanly.
+    if (err?.code === 404 || err?.message?.includes('File not found')) {
+      folderCache.clear();
+      return _initAndGetMonth(accessToken, year, month);
+    }
+    throw err;
+  }
+}
+
+async function _initAndGetMonth(
+  accessToken: string,
+  year: string,
+  month: string
+): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[]; startBalance: number }> {
   const drive = driveClient(accessToken);
   const monthFolderId = await ensureFolderPath(drive, year, month);
 
