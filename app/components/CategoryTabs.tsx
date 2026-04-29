@@ -1,11 +1,6 @@
 'use client';
 import type { Category } from '@/lib/types';
-
-const CATEGORIES: { key: Category; label: string; color: string }[] = [
-  { key: 'income',   label: 'Income',   color: 'var(--income)'  },
-  { key: 'expenses', label: 'Expenses', color: 'var(--expense)' },
-  { key: 'savings',  label: 'Savings',  color: 'var(--savings)' },
-];
+import { useT } from './LanguageContext';
 
 interface Props {
   active: Category;
@@ -14,6 +9,14 @@ interface Props {
 }
 
 export function CategoryTabs({ active, onChange, hasPending }: Props) {
+  const { t } = useT();
+
+  const CATEGORIES: { key: Category; label: string; color: string }[] = [
+    { key: 'income',   label: t.income,   color: 'var(--income)'  },
+    { key: 'expenses', label: t.expenses, color: 'var(--expense)' },
+    { key: 'savings',  label: t.savings,  color: 'var(--savings)' },
+  ];
+
   return (
     <div style={{ display: 'flex', gap: 6, padding: '12px 14px 0' }}>
       {CATEGORIES.map((c) => (
