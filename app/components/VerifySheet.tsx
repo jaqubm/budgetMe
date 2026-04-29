@@ -2,9 +2,7 @@
 import { useEffect, useState } from 'react';
 import type { Entry } from '@/lib/types';
 import { CheckIcon } from './icons';
-
-const fmt = (n: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
+import { useT } from './LanguageContext';
 
 interface Props {
   visible: boolean;
@@ -15,6 +13,7 @@ interface Props {
 }
 
 export function VerifySheet({ visible, onClose, entry, onVerify, color }: Props) {
+  const { t, fmt } = useT();
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
 
@@ -27,7 +26,7 @@ export function VerifySheet({ visible, onClose, entry, onVerify, color }: Props)
 
   const handle = () => {
     if (!amount || isNaN(+amount) || +amount <= 0) {
-      setError('Enter a valid amount');
+      setError(t.invalidAmount);
       return;
     }
     onVerify(parseFloat(amount));
@@ -51,17 +50,17 @@ export function VerifySheet({ visible, onClose, entry, onVerify, color }: Props)
         <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
 
         <div style={{ marginBottom: 4 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>Verify entry</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>{t.verifyEntry}</div>
           <div style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 2 }}>{entry?.description}</div>
         </div>
 
         <div style={{ margin: '16px 0 4px', padding: '10px 14px', borderRadius: 10, background: 'var(--planned-bg)', border: '1px dashed var(--planned-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: 'var(--planned)', fontWeight: 500 }}>Planned amount</span>
+          <span style={{ fontSize: 12, color: 'var(--planned)', fontWeight: 500 }}>{t.plannedAmount}</span>
           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--planned)' }}>{entry ? fmt(entry.amount) : ''}</span>
         </div>
 
         <div style={{ marginTop: 12, marginBottom: 4 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 6, display: 'block' }}>Actual amount ($)</label>
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 6, display: 'block' }}>{t.actualAmount}</label>
           <input
             type="number" min="0" step="0.01"
             style={{
@@ -82,13 +81,13 @@ export function VerifySheet({ visible, onClose, entry, onVerify, color }: Props)
             onClick={onClose}
             style={{ flex: 1, padding: '13px', borderRadius: 12, border: '1.5px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: 'var(--text-2)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
-            Keep planned
+            {t.keepPlanned}
           </button>
           <button
             onClick={handle}
             style={{ flex: 2, padding: '13px', borderRadius: 12, border: 'none', background: color, cursor: 'pointer', fontSize: 14, fontWeight: 700, color: 'white', fontFamily: 'Plus Jakarta Sans, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
           >
-            <CheckIcon /> Verify
+            <CheckIcon /> {t.verify}
           </button>
         </div>
       </div>
