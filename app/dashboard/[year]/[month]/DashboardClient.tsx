@@ -17,17 +17,8 @@ import { EntryForm } from '@/app/components/EntryForm';
 import { ConstantBanner } from '@/app/components/ConstantBanner';
 import { PlannedBanner } from '@/app/components/PlannedBanner';
 import { PlusIcon } from '@/app/components/icons';
-
-const fmt = (n: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
-
-const CAT_DEFS = [
-  { key: 'income'   as Category, label: 'Income',   color: 'var(--income)',   light: 'var(--income-light)'   },
-  { key: 'expenses' as Category, label: 'Expenses', color: 'var(--expense)',  light: 'var(--expense-light)'  },
-  { key: 'savings'  as Category, label: 'Savings',  color: 'var(--savings)',  light: 'var(--savings-light)'  },
-];
-
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+import { LangToggle } from '@/app/components/Header';
+import { useT } from '@/app/components/LanguageContext';
 
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -50,20 +41,25 @@ interface Props {
 
 export function DashboardClient({ year, month, todayYm, initialData, wasNew }: Props) {
   const router    = useRouter();
+  const { t, fmt, lang, setLang } = useT();
   const ym        = `${year}-${month}`;
   const isFuture  = ym > todayYm;
   const isDesktop = useIsDesktop();
+
+  const CAT_DEFS = [
+    { key: 'income'   as Category, label: t.income,   color: 'var(--income)',   light: 'var(--income-light)'   },
+    { key: 'expenses' as Category, label: t.expenses, color: 'var(--expense)',  light: 'var(--expense-light)'  },
+    { key: 'savings'  as Category, label: t.savings,  color: 'var(--savings)',  light: 'var(--savings-light)'  },
+  ];
 
   const [data, setData]             = useState<MonthData>(initialData);
   const [activeTab, setActiveTab]   = useState<Category>('income');
   const [showBanner, setShowBanner] = useState(wasNew && !isFuture);
   const [loading, setLoading]       = useState(false);
 
-  // Mobile sheets
   const [sheet, setSheet]             = useState<{ open: boolean; editIndex: number | null }>({ open: false, editIndex: null });
   const [verifySheet, setVerifySheet] = useState<{ open: boolean; index: number | null }>({ open: false, index: null });
 
-  // Desktop modals
   const [addModal,    setAddModal]    = useState<{ open: boolean; category: Category | null }>({ open: false, category: null });
   const [editModal,   setEditModal]   = useState<{ open: boolean; category: Category | null; index: number | null }>({ open: false, category: null, index: null });
   const [verifyModal, setVerifyModal] = useState<{ open: boolean; category: Category | null; index: number | null }>({ open: false, category: null, index: null });
@@ -93,7 +89,6 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
     }
   }, [apiBase]);
 
-  // Mobile operations (active tab only)
   const mobileEntries  = getEntries(activeTab);
   const mobileCatColor = CAT_DEFS.find(c => c.key === activeTab)!.color;
 
@@ -124,7 +119,6 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
     await callApi('PATCH', activeTab, { index: i, amount: actualAmount, planned: false, plannedAmount });
   };
 
-  // Desktop per-category operations
   const handleDesktopAdd = async (cat: Category, entry: Entry) => {
     setEntries(cat, [...getEntries(cat), entry]);
     await callApi('POST', cat, entry);
@@ -200,10 +194,10 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
             <div style={{ textAlign: 'center', minWidth: 140 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
-                  {MONTHS[parseInt(month) - 1]} {year}
+                  {t.months[parseInt(month) - 1]} {year}
                 </span>
                 {isFuture && (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: 'oklch(48% 0.1 250)', background: 'oklch(93% 0.04 250)', padding: '2px 7px', borderRadius: 5, letterSpacing: '0.04em' }}>Forecast</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'oklch(48% 0.1 250)', background: 'oklch(93% 0.04 250)', padding: '2px 7px', borderRadius: 5, letterSpacing: '0.04em' }}>{t.forecast}</span>
                 )}
               </div>
             </div>
@@ -219,17 +213,20 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
                 style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', fontFamily: 'Plus Jakarta Sans, sans-serif', display: 'flex', alignItems: 'center', gap: 5 }}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="7" x2="12" y2="12"/><line x1="12" y1="12" x2="16" y2="14"/></svg>
-                Today
+                {t.today}
               </button>
             )}
           </div>
 
-          <button
-            onClick={() => signOut({ callbackUrl: '/sign-in' })}
-            style={{ border: '1px solid var(--border)', background: 'none', borderRadius: 7, padding: '5px 12px', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' }}
-          >
-            Sign out
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <LangToggle lang={lang} setLang={setLang} />
+            <button
+              onClick={() => signOut({ callbackUrl: '/sign-in' })}
+              style={{ border: '1px solid var(--border)', background: 'none', borderRadius: 7, padding: '5px 12px', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              {t.signOut}
+            </button>
+          </div>
         </div>
 
         <SummaryBar income={data.income ?? []} expenses={data.expenses ?? []} savings={data.savings ?? []} isFutureMonth={isFuture} />
@@ -251,7 +248,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
         </div>
 
         {addModal.open && addCat && (
-          <Modal visible={true} onClose={() => setAddModal({ open: false, category: null })} title={`Add ${addCat.label} entry`} width={420}>
+          <Modal visible={true} onClose={() => setAddModal({ open: false, category: null })} title={t.addCategoryEntry(addCat.label)} width={420}>
             <EntryForm
               cat={addCat}
               isFutureMonth={isFuture}
@@ -264,12 +261,12 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
         {editModal.open && editCat && editModal.index !== null && (() => {
           const entry = getEntries(editModal.category!)[editModal.index];
           return (
-            <Modal visible={true} onClose={() => setEditModal({ open: false, category: null, index: null })} title={`Edit ${editCat.label} entry`} width={420}>
+            <Modal visible={true} onClose={() => setEditModal({ open: false, category: null, index: null })} title={t.editCategoryEntry(editCat.label)} width={420}>
               <EntryForm
                 cat={editCat}
                 isFutureMonth={isFuture}
                 initial={{ ...entry, amount: String(entry.amount) }}
-                submitLabel="Save changes"
+                submitLabel={t.saveChanges}
                 onCancel={() => setEditModal({ open: false, category: null, index: null })}
                 onSave={(e) => { handleDesktopEdit(editModal.category!, editModal.index!, e); setEditModal({ open: false, category: null, index: null }); }}
               />
@@ -280,11 +277,11 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
         {verifyModal.open && verifyCat && verifyModal.index !== null && (() => {
           const entry = getEntries(verifyModal.category!)[verifyModal.index];
           return (
-            <Modal visible={true} onClose={() => setVerifyModal({ open: false, category: null, index: null })} title="Verify entry" width={380}>
+            <Modal visible={true} onClose={() => setVerifyModal({ open: false, category: null, index: null })} title={t.verifyEntry} width={380}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{entry.description}</div>
                 <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--planned-bg)', border: '1px dashed var(--planned-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'var(--planned)', fontWeight: 500 }}>Planned amount</span>
+                  <span style={{ fontSize: 12, color: 'var(--planned)', fontWeight: 500 }}>{t.plannedAmount}</span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--planned)' }}>{fmt(entry.amount)}</span>
                 </div>
                 <VerifyModalForm
@@ -319,8 +316,8 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
             <div style={{ width: 48, height: 48, borderRadius: 16, background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 22 }}>💸</span>
             </div>
-            <div style={{ fontSize: 13, color: 'var(--text-3)', fontWeight: 500 }}>No {CAT_DEFS.find(c => c.key === activeTab)!.label.toLowerCase()} entries yet</div>
-            {isFuture && <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Add planned amounts to forecast this month</div>}
+            <div style={{ fontSize: 13, color: 'var(--text-3)', fontWeight: 500 }}>{t.noEntriesYet(CAT_DEFS.find(c => c.key === activeTab)!.label.toLowerCase())}</div>
+            {isFuture && <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{t.planExpected(CAT_DEFS.find(c => c.key === activeTab)!.label.toLowerCase())}</div>}
           </div>
         ) : (
           mobileEntries.map((entry, i) => (
@@ -341,14 +338,14 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
       <div style={{ padding: '10px 14px 12px', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Total {CAT_DEFS.find(c => c.key === activeTab)!.label}
+            {t.total} {CAT_DEFS.find(c => c.key === activeTab)!.label}
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: mobileCatColor, letterSpacing: '-0.5px' }}>
               {fmt(mobileActual + mobilePlanned)}
             </div>
             {mobilePlanned > 0 && (
-              <div style={{ fontSize: 11.5, color: 'var(--planned)', fontWeight: 500 }}>({fmt(mobileActual)} actual)</div>
+              <div style={{ fontSize: 11.5, color: 'var(--planned)', fontWeight: 500 }}>({fmt(mobileActual)} {t.actual})</div>
             )}
           </div>
         </div>
@@ -357,7 +354,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
           disabled={loading}
           style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', background: mobileCatColor, color: 'white', fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 13.5, fontWeight: 700, boxShadow: `0 3px 12px ${mobileCatColor}55`, opacity: loading ? 0.7 : 1 }}
         >
-          <PlusIcon /> {isFuture ? 'Plan' : 'Add'}
+          <PlusIcon /> {isFuture ? t.plan : t.add}
         </button>
       </div>
 
@@ -383,18 +380,19 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
 }
 
 function VerifyModalForm({ entry, color, onClose, onVerify }: { entry: Entry; color: string; onClose: () => void; onVerify: (amount: number) => void }) {
+  const { t, fmt } = useT();
   const [amount, setAmount] = useState(String(entry.amount));
   const [error, setError]   = useState('');
 
   const handle = () => {
-    if (!amount || isNaN(+amount) || +amount <= 0) { setError('Enter a valid amount'); return; }
+    if (!amount || isNaN(+amount) || +amount <= 0) { setError(t.invalidAmount); return; }
     onVerify(parseFloat(amount));
   };
 
   return (
     <>
       <div>
-        <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>Actual amount ($)</label>
+        <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>{t.actualAmount}</label>
         <input
           type="number" min="0" step="0.01" autoFocus
           style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1.5px solid ${error ? 'var(--expense)' : 'var(--border)'}`, fontSize: 16, fontWeight: 700, fontFamily: 'Plus Jakarta Sans, sans-serif', color: 'var(--text)', background: 'var(--bg)', outline: 'none', textAlign: 'center', letterSpacing: '-0.3px' }}
@@ -405,10 +403,10 @@ function VerifyModalForm({ entry, color, onClose, onVerify }: { entry: Entry; co
         {error && <div style={{ fontSize: 11, color: 'var(--expense)', marginTop: 2 }}>{error}</div>}
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Keep planned</button>
+        <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{t.keepPlanned}</button>
         <button onClick={handle} style={{ flex: 2, padding: '10px', borderRadius: 8, border: 'none', background: color, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'white', fontFamily: 'Plus Jakarta Sans, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
-          Verify
+          {t.verify}
         </button>
       </div>
     </>
