@@ -1,11 +1,16 @@
+import { LogoMark } from '@/app/components/Logo';
+
 export default function DashboardLoading() {
   return (
     <>
       {/* ── Mobile skeleton ─────────────────────────────── */}
       <div className="loading-mobile" style={{ height: '100svh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
-        {/* Header */}
+        {/* Header — matches Header.tsx exactly */}
         <div style={{ padding: '10px 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.4px' }}>budgetMe</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <LogoMark size={28} />
+            <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.4px' }}>budgetMe</span>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Bone width={52} height={26} radius={8} />
             <Bone width={64} height={28} radius={8} />
@@ -63,15 +68,10 @@ export default function DashboardLoading() {
 
       {/* ── Desktop skeleton ─────────────────────────────── */}
       <div className="loading-desktop" style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
-        {/* Top nav */}
+        {/* Top nav — matches DashboardClient desktop nav exactly */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="14" height="14" viewBox="0 0 32 32" fill="none">
-                <path d="M8 22 L16 10 L24 22" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <line x1="10" y1="18" x2="22" y2="18" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-              </svg>
-            </div>
+            <LogoMark size={28} />
             <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.3px' }}>budgetMe</span>
           </div>
           <Bone width={180} height={24} radius={8} />
@@ -111,7 +111,7 @@ export default function DashboardLoading() {
 }
 
 function Bone({ width, height, radius, color }: { width: number | string; height: number; radius: number; color?: string }) {
-  const base = color ?? 'var(--border)';
+  const base      = color ?? 'var(--border)';
   const highlight = color ?? 'var(--bg)';
   return (
     <div style={{

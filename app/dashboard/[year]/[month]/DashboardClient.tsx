@@ -18,6 +18,7 @@ import { ConstantBanner } from '@/app/components/ConstantBanner';
 import { PlannedBanner } from '@/app/components/PlannedBanner';
 import { PlusIcon } from '@/app/components/icons';
 import { LangToggle } from '@/app/components/Header';
+import { LogoMark } from '@/app/components/Logo';
 import { useT } from '@/app/components/LanguageContext';
 
 function useIsDesktop() {
@@ -193,12 +194,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
         {/* Top nav */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="14" height="14" viewBox="0 0 32 32" fill="none">
-                <path d="M8 22 L16 10 L24 22" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <line x1="10" y1="18" x2="22" y2="18" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-              </svg>
-            </div>
+            <LogoMark size={28} />
             <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.3px' }}>budgetMe</span>
           </div>
 

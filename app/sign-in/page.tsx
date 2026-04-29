@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { GoogleIcon } from '@/app/components/icons';
 import { useT } from '@/app/components/LanguageContext';
 import { LangToggle } from '@/app/components/Header';
+import { LogoMark } from '@/app/components/Logo';
 
 export default function SignInPage() {
   const [loading, setLoading] = useState(false);
@@ -29,11 +30,8 @@ export default function SignInPage() {
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <path d="M8 22 L16 10 L24 22" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            <line x1="10" y1="18" x2="22" y2="18" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-          </svg>
+        <div style={{ marginBottom: 4 }}>
+          <LogoMark size={64} />
         </div>
         <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.5px' }}>budgetMe</div>
         <div style={{ fontSize: 14, color: 'var(--text-2)', textAlign: 'center', lineHeight: 1.5, whiteSpace: 'pre-line' }}>

@@ -1,6 +1,7 @@
 'use client';
 import { signOut } from 'next-auth/react';
 import { useT } from './LanguageContext';
+import { LogoMark } from './Logo';
 import type { Lang } from '@/app/lib/i18n';
 
 export function Header() {
@@ -8,7 +9,10 @@ export function Header() {
 
   return (
     <div style={{ padding: '10px 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.4px' }}>budgetMe</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <LogoMark size={28} />
+        <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.4px' }}>budgetMe</span>
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <LangToggle lang={lang} setLang={setLang} />
         <button
