@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import type { Category, Entry } from '@/lib/types';
+import { useT } from './LanguageContext';
 
 interface CatDef {
   key: Category;
@@ -43,6 +44,7 @@ function Toggle({ value, onChange, color, label, sub }: { value: boolean; onChan
 }
 
 export function EntryForm({ initial, onSave, onCancel, cat, isFutureMonth, submitLabel }: Props) {
+  const { t } = useT();
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState<FormState>(
     initial ?? { date: today, amount: '', description: '', constant: false, planned: isFutureMonth }
@@ -55,8 +57,8 @@ export function EntryForm({ initial, onSave, onCancel, cat, isFutureMonth, submi
 
   const validate = (): boolean => {
     const e: Partial<Record<keyof FormState, string>> = {};
-    if (!form.description.trim()) e.description = 'Required';
-    if (!form.amount || isNaN(+form.amount) || +form.amount <= 0) e.amount = 'Enter a valid amount';
+    if (!form.description.trim()) e.description = t.required;
+    if (!form.amount || isNaN(+form.amount) || +form.amount <= 0) e.amount = t.invalidAmount;
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -71,10 +73,10 @@ export function EntryForm({ initial, onSave, onCancel, cat, isFutureMonth, submi
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div>
-        <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>Description</label>
+        <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>{t.description}</label>
         <input
           style={inp(errors.description)}
-          placeholder="e.g. Monthly Salary"
+          placeholder={t.descriptionPlaceholder}
           value={form.description}
           onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
           autoFocus
@@ -83,7 +85,7 @@ export function EntryForm({ initial, onSave, onCancel, cat, isFutureMonth, submi
       </div>
       <div style={{ display: 'flex', gap: 10 }}>
         <div style={{ flex: 1 }}>
-          <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>Amount ($)</label>
+          <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>{t.amount}</label>
           <input
             type="number" min="0" step="0.01"
             style={inp(errors.amount)}
@@ -94,7 +96,7 @@ export function EntryForm({ initial, onSave, onCancel, cat, isFutureMonth, submi
           {errors.amount && <div style={{ fontSize: 11, color: 'var(--expense)', marginTop: 2 }}>{errors.amount}</div>}
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>Date</label>
+          <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>{t.date}</label>
           <input
             type="date"
             style={inp()}
@@ -103,20 +105,20 @@ export function EntryForm({ initial, onSave, onCancel, cat, isFutureMonth, submi
           />
         </div>
       </div>
-      <Toggle value={form.planned} onChange={() => setForm((f) => ({ ...f, planned: !f.planned }))} color="var(--planned)" label="Planned entry" sub="Expected amount — verify when it happens" />
-      <Toggle value={form.constant} onChange={() => setForm((f) => ({ ...f, constant: !f.constant }))} color={cat.color} label="Recurring entry" sub="Carry over to next month" />
+      <Toggle value={form.planned} onChange={() => setForm((f) => ({ ...f, planned: !f.planned }))} color="var(--planned)" label={t.plannedEntry} sub={t.plannedEntrySub} />
+      <Toggle value={form.constant} onChange={() => setForm((f) => ({ ...f, constant: !f.constant }))} color={cat.color} label={t.recurringEntry} sub={t.recurringEntrySub} />
       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
         <button
           onClick={onCancel}
           style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
         >
-          Cancel
+          {t.cancel}
         </button>
         <button
           onClick={() => { if (validate()) onSave({ ...form, amount: parseFloat(form.amount) }); }}
           style={{ flex: 2, padding: '10px', borderRadius: 8, border: 'none', background: form.planned ? 'var(--planned)' : cat.color, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'white', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
         >
-          {submitLabel ?? (form.planned ? 'Add as planned' : 'Add entry')}
+          {submitLabel ?? (form.planned ? t.addAsPlanned : t.addEntry)}
         </button>
       </div>
     </div>
