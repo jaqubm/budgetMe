@@ -2,9 +2,12 @@
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
 import { GoogleIcon } from '@/app/components/icons';
+import { useT } from '@/app/components/LanguageContext';
+import { LangToggle } from '@/app/components/Header';
 
 export default function SignInPage() {
   const [loading, setLoading] = useState(false);
+  const { t, lang, setLang } = useT();
 
   const handleSignIn = async () => {
     setLoading(true);
@@ -21,6 +24,10 @@ export default function SignInPage() {
       maxWidth: 430,
       margin: '0 auto',
     }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 0 0' }}>
+        <LangToggle lang={lang} setLang={setLang} />
+      </div>
+
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
         <div style={{ width: 64, height: 64, borderRadius: 20, background: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -29,8 +36,8 @@ export default function SignInPage() {
           </svg>
         </div>
         <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.5px' }}>budgetMe</div>
-        <div style={{ fontSize: 14, color: 'var(--text-2)', textAlign: 'center', lineHeight: 1.5 }}>
-          Your finances, stored<br/>only on your Google Drive.
+        <div style={{ fontSize: 14, color: 'var(--text-2)', textAlign: 'center', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+          {t.tagline}
         </div>
       </div>
 
@@ -62,10 +69,10 @@ export default function SignInPage() {
           ) : (
             <GoogleIcon />
           )}
-          {loading ? 'Signing in…' : 'Continue with Google'}
+          {loading ? t.signingIn : t.continueWithGoogle}
         </button>
-        <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-3)', marginTop: 16, lineHeight: 1.5 }}>
-          budgetMe only accesses files it creates in<br/>your Google Drive. Nothing else.
+        <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-3)', marginTop: 16, lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+          {t.driveDisclaimer}
         </p>
       </div>
     </div>
