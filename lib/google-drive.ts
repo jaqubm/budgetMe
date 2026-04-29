@@ -2,6 +2,9 @@ import { google } from 'googleapis';
 import { parseCSV, serializeCSV } from './csv';
 import type { Entry, Category } from './types';
 
+// Folder IDs are stable — cache them across warm function instances to skip redundant list calls.
+const folderCache = new Map<string, string>();
+
 function driveClient(accessToken: string) {
   const auth = new google.auth.OAuth2();
   auth.setCredentials({ access_token: accessToken });
@@ -13,27 +16,38 @@ async function findOrCreateFolder(
   name: string,
   parentId?: string
 ): Promise<string> {
+  const cacheKey = `${parentId ?? 'root'}/${name}`;
+  const cached = folderCache.get(cacheKey);
+  if (cached) return cached;
+
   const q = parentId
     ? `name='${name}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`
     : `name='${name}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false`;
 
   const res = await drive.files.list({ q, fields: 'files(id)', spaces: 'drive' });
-  if (res.data.files?.length) return res.data.files[0].id!;
+  let id: string;
 
-  const created = await drive.files.create({
-    requestBody: {
-      name,
-      mimeType: 'application/vnd.google-apps.folder',
-      parents: parentId ? [parentId] : undefined,
-    },
-    fields: 'id',
-  });
-  return created.data.id!;
+  if (res.data.files?.length) {
+    id = res.data.files[0].id!;
+  } else {
+    const created = await drive.files.create({
+      requestBody: {
+        name,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: parentId ? [parentId] : undefined,
+      },
+      fields: 'id',
+    });
+    id = created.data.id!;
+  }
+
+  folderCache.set(cacheKey, id);
+  return id;
 }
 
 async function ensureFolderPath(drive: ReturnType<typeof google.drive>, year: string, month: string) {
-  const rootId = await findOrCreateFolder(drive, 'budgetMe');
-  const yearId = await findOrCreateFolder(drive, year, rootId);
+  const rootId  = await findOrCreateFolder(drive, 'budgetMe');
+  const yearId  = await findOrCreateFolder(drive, year, rootId);
   const monthId = await findOrCreateFolder(drive, month, yearId);
   return monthId;
 }
@@ -93,42 +107,59 @@ function firstOfMonth(year: string, month: string): string {
   return `${year}-${month}-01`;
 }
 
-export async function initMonth(
+const CATEGORIES: Category[] = ['income', 'expenses', 'savings'];
+
+// Initializes the month folder + CSV files (seeding constants from prev month),
+// then returns all three entry lists in a single pass — avoids re-resolving folder paths.
+export async function initAndGetMonth(
   accessToken: string,
   year: string,
   month: string
-): Promise<boolean> {
+): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[] }> {
   const drive = driveClient(accessToken);
   const monthFolderId = await ensureFolderPath(drive, year, month);
-  const categories: Category[] = ['income', 'expenses', 'savings'];
 
-  const needsInit = await Promise.all(
-    categories.map((cat) => findFile(drive, `${cat}.csv`, monthFolderId))
+  // Check existence of all three CSV files in parallel.
+  const fileIds: (string | null)[] = await Promise.all(
+    CATEGORIES.map(cat => findFile(drive, `${cat}.csv`, monthFolderId))
   );
 
-  if (needsInit.every((id) => id !== null)) return false; // all files exist
+  const missingIdxs = fileIds.map((id, i) => id === null ? i : -1).filter(i => i !== -1);
+  let wasNew = false;
 
-  const { year: py, month: pm } = prevYearMonth(year, month);
-  const isPlan = false; // server doesn't know if future; caller decides
-
-  for (let i = 0; i < categories.length; i++) {
-    if (needsInit[i] !== null) continue; // file already exists
-    const cat = categories[i];
-
+  if (missingIdxs.length > 0) {
+    wasNew = true;
+    const { year: py, month: pm } = prevYearMonth(year, month);
     const prevFolderId = await ensureFolderPath(drive, py, pm);
-    const prevFileId = await findFile(drive, `${cat}.csv`, prevFolderId);
-    let seedEntries: Entry[] = [];
-    if (prevFileId) {
-      const prevEntries = await readCSVFile(drive, prevFileId);
-      const firstDate = firstOfMonth(year, month);
-      seedEntries = prevEntries
-        .filter((e) => e.constant)
-        .map((e) => ({ ...e, date: firstDate, planned: isPlan }));
-    }
-    await createCSVFile(drive, `${cat}.csv`, monthFolderId, seedEntries);
+    const firstDate = firstOfMonth(year, month);
+
+    // Fetch prev-month file IDs and their contents in parallel.
+    const prevFileIds = await Promise.all(
+      missingIdxs.map(i => findFile(drive, `${CATEGORIES[i]}.csv`, prevFolderId))
+    );
+    const prevEntries = await Promise.all(
+      prevFileIds.map(id => id ? readCSVFile(drive, id) : Promise.resolve([]))
+    );
+
+    // Create all missing files in parallel.
+    const newIds = await Promise.all(
+      missingIdxs.map((i, j) => {
+        const seed = prevEntries[j]
+          .filter(e => e.constant)
+          .map(e => ({ ...e, date: firstDate }));
+        return createCSVFile(drive, `${CATEGORIES[i]}.csv`, monthFolderId, seed);
+      })
+    );
+
+    missingIdxs.forEach((i, j) => { fileIds[i] = newIds[j]; });
   }
 
-  return true; // newly initialized
+  // Read all three files in parallel.
+  const allEntries = await Promise.all(
+    fileIds.map(id => id ? readCSVFile(drive, id) : Promise.resolve([]))
+  );
+
+  return { wasNew, income: allEntries[0], expenses: allEntries[1], savings: allEntries[2] };
 }
 
 export async function getEntries(

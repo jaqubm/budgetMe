@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getEntries, initMonth } from '@/lib/google-drive';
+import { initAndGetMonth } from '@/lib/google-drive';
 import type { Category } from '@/lib/types';
 
 export async function GET(req: NextRequest) {
@@ -18,7 +18,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing params' }, { status: 400 });
   }
 
-  const wasNew = await initMonth(session.accessToken, year, month);
-  const entries = await getEntries(session.accessToken, year, month, category);
-  return NextResponse.json({ entries, wasNew });
+  const result = await initAndGetMonth(session.accessToken, year, month);
+  return NextResponse.json({ entries: result[category], wasNew: result.wasNew });
 }

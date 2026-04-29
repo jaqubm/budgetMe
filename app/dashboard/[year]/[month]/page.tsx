@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
-import { getEntries, initMonth } from '@/lib/google-drive';
+import { initAndGetMonth } from '@/lib/google-drive';
 import type { MonthData } from '@/lib/types';
 import { DashboardClient } from './DashboardClient';
 
@@ -13,18 +13,13 @@ export default async function DashboardPage({ params }: Props) {
   const session = await auth();
   if (!session?.accessToken || session.error === 'RefreshTokenError') redirect('/sign-in');
 
-  const wasNew = await initMonth(session.accessToken, year, month);
-
   const now = new Date();
   const todayYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const ym = `${year}-${month}`;
-  const isFutureMth = ym > todayYm;
+  const isFutureMth = `${year}-${month}` > todayYm;
 
-  const [income, expenses, savings] = await Promise.all([
-    getEntries(session.accessToken, year, month, 'income'),
-    getEntries(session.accessToken, year, month, 'expenses'),
-    getEntries(session.accessToken, year, month, 'savings'),
-  ]);
+  const { wasNew, income, expenses, savings } = await initAndGetMonth(
+    session.accessToken, year, month
+  );
 
   const markPlanned = (entries: typeof income) =>
     isFutureMth ? entries.map(e => ({ ...e, planned: e.planned ?? true })) : entries;

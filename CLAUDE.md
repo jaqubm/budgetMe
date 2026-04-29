@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**budgetMe** is a personal budgeting Next.js web app hosted on Azure Static Web Apps. It has no database — all user data is stored as CSV files on the user's Google Drive. Authentication is handled via NextAuth.js + Google OAuth2, which simultaneously grants `drive.file` scope for Google Drive access.
+**budgetMe** is a personal budgeting Next.js web app hosted on Vercel. It has no database — all user data is stored as CSV files on the user's Google Drive. Authentication is handled via NextAuth.js + Google OAuth2, which simultaneously grants `drive.file` scope for Google Drive access.
 
 ## Commands
 
-The project uses **yarn** as the package manager (CI installs it via `npm install yarn`).
+The project uses **yarn** as the package manager.
 
 ```bash
 yarn          # Install dependencies
@@ -24,7 +24,7 @@ yarn lint     # Run ESLint
 - **Auth**: NextAuth.js with Google Provider (`openid email profile drive.file` scopes)
 - **Data**: Google Drive API — CSV files, no database
 - **Styling**: Tailwind CSS (mobile-first)
-- **Hosting**: Azure Static Web Apps (output: `build/`)
+- **Hosting**: Vercel (deploys automatically on push to main)
 
 ### App Router Structure
 
@@ -37,7 +37,10 @@ yarn lint     # Run ESLint
 │   └── drive/
 │       ├── entries/route.ts            # GET ?year=&month=&category=
 │       └── entry/route.ts             # POST / PUT / PATCH / DELETE
-├── dashboard/[year]/[month]/page.tsx   # Main month view
+├── dashboard/[year]/[month]/
+│   ├── page.tsx                        # Main month view (Server Component)
+│   ├── loading.tsx                     # Loading skeleton shown during navigation
+│   └── DashboardClient.tsx            # Interactive dashboard (Client Component)
 ├── components/                         # UI components (see below)
 └── lib/
     ├── google-drive.ts                 # Drive API wrapper (folder init, CSV CRUD)
@@ -70,10 +73,11 @@ Use **only** Next.js built-in routing — no external router library:
 - Forms use bottom sheets on mobile, modals on desktop
 - Color coding: Income → green, Expenses → red, Savings → blue
 - `constant` entries are visually distinguished (pin icon / subtle highlight)
+- Google Drive folder IDs are cached in-memory (`folderCache` in `google-drive.ts`) to avoid redundant list calls across warm Vercel function instances
 
 ## Environment Variables
 
-Required in `.env.local` (dev) and Azure App Service Configuration (prod):
+Required in `.env.local` (dev) and Vercel project settings (prod):
 
 ```
 NEXTAUTH_URL=
@@ -81,8 +85,3 @@ NEXTAUTH_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 ```
-
-## CI/CD
-
-- **PRs**: `build.yml` runs `yarn build` on Node.js 21
-- **Push to main**: `deployment.yml` deploys to Azure Static Web Apps (`output_location: build/`)
