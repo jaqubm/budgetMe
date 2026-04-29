@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import './globals.css';
 import { LanguageProvider } from '@/app/components/LanguageContext';
 import { HtmlLang } from '@/app/components/HtmlLang';
@@ -14,6 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <LanguageProvider>
+          <SpeedInsights/>
           <Analytics />
           <HtmlLang />
           {children}
