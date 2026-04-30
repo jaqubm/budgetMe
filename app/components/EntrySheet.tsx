@@ -60,7 +60,7 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
   useEffect(() => {
     if (visible) {
       if (editEntry) {
-        setForm({ ...editEntry, amount: String(editEntry.amount), fromSavings: editEntry.fromSavings ?? false });
+        setForm({ ...editEntry, amount: String(editEntry.amount) });
       } else {
         setForm({ date: defaultDate, amount: '', description: '', constant: false, planned: isFuture, fromSavings: false });
       }
