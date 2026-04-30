@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   } & Entry;
 
   await addEntry(session.accessToken, year, month, category, entry);
-  recomputeAndWriteSavingsClosing(session.accessToken, year, month).catch(() => {});
+  await recomputeAndWriteSavingsClosing(session.accessToken, year, month);
   return NextResponse.json({ ok: true });
 }
 
@@ -33,7 +33,7 @@ export async function PUT(req: NextRequest) {
   } & Entry;
 
   await updateEntry(session.accessToken, year, month, category, index, entry);
-  recomputeAndWriteSavingsClosing(session.accessToken, year, month).catch(() => {});
+  await recomputeAndWriteSavingsClosing(session.accessToken, year, month);
   return NextResponse.json({ ok: true });
 }
 
@@ -48,7 +48,7 @@ export async function PATCH(req: NextRequest) {
   const { year, month, category, index, ...patch } = body;
 
   await patchEntry(session.accessToken, year, month, category, index, patch);
-  recomputeAndWriteSavingsClosing(session.accessToken, year, month).catch(() => {});
+  await recomputeAndWriteSavingsClosing(session.accessToken, year, month);
   return NextResponse.json({ ok: true });
 }
 
@@ -60,6 +60,6 @@ export async function DELETE(req: NextRequest) {
     year: string; month: string; category: Category; index: number;
   };
   await deleteEntry(session.accessToken, body.year, body.month, body.category, body.index);
-  recomputeAndWriteSavingsClosing(session.accessToken, body.year, body.month).catch(() => {});
+  await recomputeAndWriteSavingsClosing(session.accessToken, body.year, body.month);
   return NextResponse.json({ ok: true });
 }

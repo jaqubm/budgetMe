@@ -5,6 +5,19 @@ import type { Entry, Category } from './types';
 // Folder IDs are stable — cache them across warm function instances to skip redundant list calls.
 const folderCache = new Map<string, string>();
 
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 500): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries - 1) await new Promise(r => setTimeout(r, delayMs * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 function driveClient(accessToken: string) {
   const auth = new google.auth.OAuth2();
   auth.setCredentials({ access_token: accessToken });
@@ -75,10 +88,10 @@ async function writeCSVFile(
   fileId: string,
   entries: Entry[]
 ): Promise<void> {
-  await drive.files.update({
+  await withRetry(() => drive.files.update({
     fileId,
     media: { mimeType: 'text/csv', body: serializeCSV(entries) },
-  });
+  }));
 }
 
 async function createCSVFile(
@@ -114,13 +127,13 @@ async function writeStartBalanceFile(
   const fileId = await findFile(drive, 'balance.txt', monthFolderId);
   const body   = String(amount);
   if (fileId) {
-    await drive.files.update({ fileId, media: { mimeType: 'text/plain', body } });
+    await withRetry(() => drive.files.update({ fileId, media: { mimeType: 'text/plain', body } }));
   } else {
-    await drive.files.create({
+    await withRetry(() => drive.files.create({
       requestBody: { name: 'balance.txt', parents: [monthFolderId] },
       media: { mimeType: 'text/plain', body },
       fields: 'id',
-    });
+    }));
   }
 }
 
@@ -143,13 +156,13 @@ async function writeSavingsClosing(
   const fileId = await findFile(drive, 'savings_closing.txt', monthFolderId);
   const body   = String(amount);
   if (fileId) {
-    await drive.files.update({ fileId, media: { mimeType: 'text/plain', body } });
+    await withRetry(() => drive.files.update({ fileId, media: { mimeType: 'text/plain', body } }));
   } else {
-    await drive.files.create({
+    await withRetry(() => drive.files.create({
       requestBody: { name: 'savings_closing.txt', parents: [monthFolderId] },
       media: { mimeType: 'text/plain', body },
       fields: 'id',
-    });
+    }));
   }
 }
 
