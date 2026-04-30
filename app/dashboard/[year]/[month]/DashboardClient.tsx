@@ -241,7 +241,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
           </div>
         </div>
 
-        <SummaryBar income={data.income ?? []} expenses={data.expenses ?? []} savings={data.savings ?? []} isFutureMonth={isFuture} startBalance={startBal} onEditStartBalance={() => setEditingBal(true)} />
+        <SummaryBar income={data.income ?? []} expenses={data.expenses ?? []} savings={data.savings ?? []} isFutureMonth={isFuture} startBalance={startBal} openingSavings={data.openingSavings} onEditStartBalance={() => setEditingBal(true)} />
 
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
           {CAT_DEFS.map(cat => (
@@ -318,7 +318,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
     <div style={{ height: '100svh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
       <Header />
       <MonthPicker ym={ym} todayYm={todayYm} onChange={handleChangeMonth} />
-      <SummaryCard income={data.income ?? []} expenses={data.expenses ?? []} savings={data.savings ?? []} isFuture={isFuture} startBalance={startBal} onEditStartBalance={() => setEditingBal(true)} />
+      <SummaryCard income={data.income ?? []} expenses={data.expenses ?? []} savings={data.savings ?? []} isFuture={isFuture} startBalance={startBal} openingSavings={data.openingSavings} onEditStartBalance={() => setEditingBal(true)} />
 
       {showBanner && !isFuture && <ConstantBanner onDismiss={() => setShowBanner(false)} />}
       {isFuture && plannedCount > 0 && <PlannedBanner plannedCount={plannedCount} verifiedCount={verifiedCount} />}
