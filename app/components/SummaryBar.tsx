@@ -11,10 +11,11 @@ interface Props {
   savings:            Entry[];
   isFutureMonth:      boolean;
   startBalance:       number;
+  openingSavings:     number;
   onEditStartBalance: () => void;
 }
 
-export function SummaryBar({ income, expenses, savings, isFutureMonth, startBalance, onEditStartBalance }: Props) {
+export function SummaryBar({ income, expenses, savings, isFutureMonth, startBalance, openingSavings, onEditStartBalance }: Props) {
   const { t, fmt, fmtShort } = useT();
 
   const aI = sumActual(income),  pI = sumPlanned(income);
@@ -28,6 +29,10 @@ export function SummaryBar({ income, expenses, savings, isFutureMonth, startBala
   const expPct = Math.min(100, (tE / total) * 100);
   const savPct = Math.min(100, (tS / total) * 100);
   const incPct = Math.max(0, 100 - expPct - savPct);
+
+  const fromSavIncome   = income.filter(e => e.fromSavings).reduce((s, e) => s + e.amount, 0);
+  const fromSavExpenses = expenses.filter(e => e.fromSavings).reduce((s, e) => s + e.amount, 0);
+  const closingSavings  = openingSavings + tS - fromSavIncome - fromSavExpenses;
 
   const legend = [
     { label: t.income,   actual: aI, planned: pI, dot: 'var(--income-mid)'  },
@@ -87,6 +92,18 @@ export function SummaryBar({ income, expenses, savings, isFutureMonth, startBala
               )}
             </div>
           ))}
+        </div>
+      </div>
+
+      <div style={{ flexShrink: 0, textAlign: 'right' }}>
+        <div style={{ fontSize: 10.5, fontWeight: 600, color: 'oklch(100% 0 0 / 0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>
+          {t.savingsBalance}
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px', color: 'var(--savings-mid)' }}>
+          {fmt(closingSavings)}
+        </div>
+        <div style={{ fontSize: 10, color: 'oklch(100% 0 0 / 0.4)', fontWeight: 500, marginTop: 2 }}>
+          {t.prevMonthSavings} {fmt(openingSavings)}
         </div>
       </div>
     </div>
