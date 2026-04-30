@@ -64,7 +64,7 @@ export function SummaryCard({ income, expenses, savings, isFuture, startBalance,
           </div>
           <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-1px' }}>
             {balance >= 0
-              ? <span>{fmt(balance)}{isFuture && <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.5, marginLeft: 6 }}>{t.projected}</span>}</span>
+              ? <span>{fmt(balance)}</span>
               : <span style={{ color: 'oklch(70% 0.18 22)' }}>{fmt(balance)}</span>
             }
           </div>
