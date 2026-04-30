@@ -9,6 +9,7 @@ interface FormState {
   description: string;
   constant: boolean;
   planned: boolean;
+  fromSavings: boolean;
 }
 
 interface Props {
@@ -53,7 +54,7 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
   const catLabel = CAT_LABELS[category];
   const defaultDate = `${currentYm}-01`;
 
-  const [form, setForm] = useState<FormState>({ date: defaultDate, amount: '', description: '', constant: false, planned: false });
+  const [form, setForm] = useState<FormState>({ date: defaultDate, amount: '', description: '', constant: false, planned: false, fromSavings: false });
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
 
   useEffect(() => {
@@ -61,7 +62,7 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
       if (editEntry) {
         setForm({ ...editEntry, amount: String(editEntry.amount) });
       } else {
-        setForm({ date: defaultDate, amount: '', description: '', constant: false, planned: isFuture });
+        setForm({ date: defaultDate, amount: '', description: '', constant: false, planned: isFuture, fromSavings: false });
       }
       setErrors({});
     }
@@ -78,7 +79,7 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
 
   const handleSave = () => {
     if (!validate()) return;
-    onSave({ ...form, amount: parseFloat(form.amount) });
+    onSave({ ...form, amount: parseFloat(form.amount), plannedAmount: undefined });
     onClose();
   };
 

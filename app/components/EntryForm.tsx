@@ -15,6 +15,7 @@ interface FormState {
   description: string;
   constant: boolean;
   planned: boolean;
+  fromSavings: boolean;
 }
 
 interface Props {
@@ -47,12 +48,12 @@ export function EntryForm({ initial, onSave, onCancel, cat, isFutureMonth, submi
   const { t } = useT();
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState<FormState>(
-    initial ?? { date: today, amount: '', description: '', constant: false, planned: isFutureMonth }
+    initial ?? { date: today, amount: '', description: '', constant: false, planned: isFutureMonth, fromSavings: false }
   );
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
 
   useEffect(() => {
-    setForm(initial ?? { date: today, amount: '', description: '', constant: false, planned: isFutureMonth });
+    setForm(initial ?? { date: today, amount: '', description: '', constant: false, planned: isFutureMonth, fromSavings: false });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const validate = (): boolean => {
@@ -115,7 +116,7 @@ export function EntryForm({ initial, onSave, onCancel, cat, isFutureMonth, submi
           {t.cancel}
         </button>
         <button
-          onClick={() => { if (validate()) onSave({ ...form, amount: parseFloat(form.amount) }); }}
+          onClick={() => { if (validate()) onSave({ ...form, amount: parseFloat(form.amount), plannedAmount: undefined }); }}
           style={{ flex: 2, padding: '10px', borderRadius: 8, border: 'none', background: form.planned ? 'var(--planned)' : cat.color, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'white', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
         >
           {submitLabel ?? (form.planned ? t.addAsPlanned : t.addEntry)}

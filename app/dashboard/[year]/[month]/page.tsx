@@ -29,6 +29,7 @@ export default async function DashboardPage({ params }: Props) {
     expenses:     markPlanned(expenses),
     savings:      markPlanned(savings),
     startBalance,
+    openingSavings: 0,
   };
 
   return (

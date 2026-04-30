@@ -7,7 +7,7 @@ export interface Entry {
   constant: boolean;
   planned: boolean;
   plannedAmount?: number; // set after verification
-  fromSavings?: boolean;  // draws from the savings pool (income and expenses only)
+  fromSavings: boolean;   // draws from the savings pool (income and expenses only)
 }
 
 export interface MonthData {
