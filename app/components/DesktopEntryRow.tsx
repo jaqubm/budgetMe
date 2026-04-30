@@ -4,9 +4,6 @@ import type { Entry } from '@/lib/types';
 import { PinIcon, TrashIcon, EditIcon, CheckIcon } from './icons';
 import { useT } from './LanguageContext';
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
-
 interface Props {
   entry: Entry;
   index: number;
@@ -18,7 +15,7 @@ interface Props {
 }
 
 export function DesktopEntryRow({ entry, index, color, onDelete, onToggleConstant, onEdit, onVerify }: Props) {
-  const { t } = useT();
+  const { t, fmt } = useT();
   const [hovered, setHovered] = useState(false);
   const isPlanned = entry.planned;
   const hasPlannedRecord = !isPlanned && entry.plannedAmount != null;
@@ -70,7 +67,7 @@ export function DesktopEntryRow({ entry, index, color, onDelete, onToggleConstan
           </div>
         )}
         {hasPlannedRecord && !amountChanged && (
-          <div style={{ fontSize: 10, color: 'var(--text-3)' }}>as planned</div>
+          <div style={{ fontSize: 10, color: 'var(--text-3)' }}>{t.asPlanned}</div>
         )}
       </div>
 
@@ -81,7 +78,7 @@ export function DesktopEntryRow({ entry, index, color, onDelete, onToggleConstan
             title="Verify"
             style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '4px 7px', borderRadius: 6, background: 'oklch(92% 0.005 260)', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--text-2)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
-            <CheckIcon /> Verify
+            <CheckIcon /> {t.verify}
           </button>
         ) : (
           <button
