@@ -124,6 +124,35 @@ async function writeStartBalanceFile(
   }
 }
 
+async function readSavingsClosing(
+  drive: ReturnType<typeof google.drive>,
+  monthFolderId: string
+): Promise<number> {
+  const fileId = await findFile(drive, 'savings_closing.txt', monthFolderId);
+  if (!fileId) return 0;
+  const res = await drive.files.get({ fileId, alt: 'media' }, { responseType: 'text' });
+  const n = parseFloat(res.data as string);
+  return isNaN(n) ? 0 : n;
+}
+
+async function writeSavingsClosing(
+  drive: ReturnType<typeof google.drive>,
+  monthFolderId: string,
+  amount: number
+): Promise<void> {
+  const fileId = await findFile(drive, 'savings_closing.txt', monthFolderId);
+  const body   = String(amount);
+  if (fileId) {
+    await drive.files.update({ fileId, media: { mimeType: 'text/plain', body } });
+  } else {
+    await drive.files.create({
+      requestBody: { name: 'savings_closing.txt', parents: [monthFolderId] },
+      media: { mimeType: 'text/plain', body },
+      fields: 'id',
+    });
+  }
+}
+
 export async function setStartBalance(
   accessToken: string,
   year: string,
