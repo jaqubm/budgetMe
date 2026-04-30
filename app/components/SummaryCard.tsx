@@ -6,15 +6,16 @@ const sumActual  = (arr: Entry[]) => arr.filter(e => !e.planned).reduce((a, b) =
 const sumPlanned = (arr: Entry[]) => arr.filter(e => e.planned).reduce((a, b) => a + b.amount, 0);
 
 interface Props {
-  income:              Entry[];
-  expenses:            Entry[];
-  savings:             Entry[];
-  isFuture:            boolean;
-  startBalance:        number;
-  onEditStartBalance:  () => void;
+  income:             Entry[];
+  expenses:           Entry[];
+  savings:            Entry[];
+  isFuture:           boolean;
+  startBalance:       number;
+  openingSavings:     number;
+  onEditStartBalance: () => void;
 }
 
-export function SummaryCard({ income, expenses, savings, isFuture, startBalance, onEditStartBalance }: Props) {
+export function SummaryCard({ income, expenses, savings, isFuture, startBalance, openingSavings, onEditStartBalance }: Props) {
   const { t, fmt, fmtShort } = useT();
 
   const aI = sumActual(income),  pI = sumPlanned(income);
@@ -29,6 +30,10 @@ export function SummaryCard({ income, expenses, savings, isFuture, startBalance,
   const expPct = Math.min(100, (tE / total) * 100);
   const savPct = Math.min(100, (tS / total) * 100);
   const incPct = Math.max(0, 100 - expPct - savPct);
+
+  const fromSavIncome   = income.filter(e => e.fromSavings).reduce((s, e) => s + e.amount, 0);
+  const fromSavExpenses = expenses.filter(e => e.fromSavings).reduce((s, e) => s + e.amount, 0);
+  const closingSavings  = openingSavings + tS - fromSavIncome - fromSavExpenses;
 
   const legend = [
     { label: t.income,   actual: aI, planned: pI, color: 'var(--income-mid)'  },
@@ -49,18 +54,33 @@ export function SummaryCard({ income, expenses, savings, isFuture, startBalance,
       outline: isFuture ? '1.5px dashed oklch(50% 0.12 250 / 0.35)' : 'none',
       outlineOffset: '-1px',
     }}>
-      <div style={{ fontSize: 11, fontWeight: 600, opacity: 0.5, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-        {isFuture ? t.projectedBalance : t.balanceThisMonth}
-        {isFuture && (
-          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', background: 'oklch(100% 0 0 / 0.1)', padding: '2px 6px', borderRadius: 4, opacity: 1 }}>FORECAST</span>
-        )}
-      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 600, opacity: 0.5, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+            {isFuture ? t.projectedBalance : t.balanceThisMonth}
+            {isFuture && (
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', background: 'oklch(100% 0 0 / 0.1)', padding: '2px 6px', borderRadius: 4, opacity: 1 }}>FORECAST</span>
+            )}
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-1px' }}>
+            {balance >= 0
+              ? <span>{fmt(balance)}{isFuture && <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.5, marginLeft: 6 }}>{t.projected}</span>}</span>
+              : <span style={{ color: 'oklch(70% 0.18 22)' }}>{fmt(balance)}</span>
+            }
+          </div>
+        </div>
 
-      <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-1px', marginBottom: 14 }}>
-        {balance >= 0
-          ? <span>{fmt(balance)}{isFuture && <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.5, marginLeft: 6 }}>{t.projected}</span>}</span>
-          : <span style={{ color: 'oklch(70% 0.18 22)' }}>{fmt(balance)}</span>
-        }
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, opacity: 0.5, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>
+            {t.savingsBalance}
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px', color: 'var(--savings-mid)' }}>
+            {fmt(closingSavings)}
+          </div>
+          <div style={{ fontSize: 10, opacity: 0.45, fontWeight: 500, marginTop: 2 }}>
+            {t.prevMonthSavings} {fmt(openingSavings)}
+          </div>
+        </div>
       </div>
 
       <div style={{ marginBottom: 12 }}>
