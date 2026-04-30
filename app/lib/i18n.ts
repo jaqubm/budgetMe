@@ -53,6 +53,10 @@ export interface Translations {
   startBalance: string;
   startBalanceSub: string;
   setStartBalance: string;
+  fromSavings: string;
+  fromSavingsSub: string;
+  savingsBalance: string;
+  prevMonthSavings: string;
   continueWithGoogle: string;
   signingIn: string;
   tagline: string;
@@ -112,6 +116,10 @@ export const translations: Record<Lang, Translations> = {
     startBalance: 'Start balance',
     startBalanceSub: 'Opening balance for this month',
     setStartBalance: 'Set start balance',
+    fromSavings: 'From savings',
+    fromSavingsSub: 'This transaction draws from the savings pool',
+    savingsBalance: 'Savings balance',
+    prevMonthSavings: 'prev. month',
     continueWithGoogle: 'Continue with Google',
     signingIn: 'Signing in\u2026',
     tagline: 'Your finances, stored\nonly on your Google Drive.',
@@ -169,6 +177,10 @@ export const translations: Record<Lang, Translations> = {
     startBalance: 'Saldo początkowe',
     startBalanceSub: 'Saldo na początku miesiąca',
     setStartBalance: 'Ustaw saldo początkowe',
+    fromSavings: 'Z oszczędności',
+    fromSavingsSub: 'Ta transakcja pochodzi z puli oszczędności',
+    savingsBalance: 'Saldo oszczędności',
+    prevMonthSavings: 'poprz. miesiąc',
     continueWithGoogle: 'Kontynuuj przez Google',
     signingIn: 'Logowanie\u2026',
     tagline: 'Twoje finanse, przechowywane\nwyłącznie na Twoim Dysku Google.',
