@@ -340,3 +340,31 @@ export async function deleteEntry(
   entries.splice(index, 1);
   await writeCSVFile(drive, fileId, entries);
 }
+
+export async function recomputeAndWriteSavingsClosing(
+  accessToken: string,
+  year: string,
+  month: string
+): Promise<void> {
+  const drive = driveClient(accessToken);
+  const monthFolderId = await ensureFolderPath(drive, year, month);
+  const { year: py, month: pm } = prevYearMonth(year, month);
+  const prevFolderId = await ensureFolderPath(drive, py, pm);
+
+  const [allEntries, openingSavings] = await Promise.all([
+    Promise.all(CATEGORIES.map(cat =>
+      findFile(drive, `${cat}.csv`, monthFolderId)
+        .then(id => id ? readCSVFile(drive, id) : Promise.resolve([]))
+    )),
+    readSavingsClosing(drive, prevFolderId),
+  ]);
+
+  const [income, expenses, savings] = allEntries;
+  const fromSavingsDeductions = [...income, ...expenses]
+    .filter(e => e.fromSavings)
+    .reduce((sum, e) => sum + e.amount, 0);
+  const savingsSum = savings.reduce((sum, e) => sum + e.amount, 0);
+  const closing = openingSavings + savingsSum - fromSavingsDeductions;
+
+  await writeSavingsClosing(drive, monthFolderId, closing);
+}
