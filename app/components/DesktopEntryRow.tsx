@@ -82,21 +82,20 @@ export function DesktopEntryRow({ id, entry, index, color, onDelete, onToggleCon
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 2, maxWidth: hovered ? 200 : 0, overflow: 'hidden', opacity: hovered ? 1 : 0, transition: 'opacity 0.15s, max-width 0.15s', flexShrink: 0 }}>
-        {isPlanned ? (
+        {isPlanned && (
           <button
             onClick={() => onVerify(index)}
             style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '4px 7px', borderRadius: 6, background: 'oklch(92% 0.005 260)', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--text-2)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
             <CheckIcon /> {t.verify}
           </button>
-        ) : (
-          <button
-            onClick={() => onEdit(index)}
-            style={{ width: 26, height: 26, borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}
-          >
-            <EditIcon />
-          </button>
         )}
+        <button
+          onClick={() => onEdit(index)}
+          style={{ width: 26, height: 26, borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}
+        >
+          <EditIcon />
+        </button>
         <button
           onClick={() => onDelete(index)}
           style={{ width: 26, height: 26, borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}

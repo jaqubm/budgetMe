@@ -22,7 +22,7 @@ export function EntryRow({ id, entry, index, color, onDelete, onToggleConstant, 
   const [swiped, setSwiped] = useState(false);
   const touchStart = useRef<number | null>(null);
   const isPlanned = entry.planned;
-  const swipeWidth = isPlanned ? 76 : 112;
+  const swipeWidth = 112;
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
 
@@ -58,14 +58,12 @@ export function EntryRow({ id, entry, index, color, onDelete, onToggleConstant, 
         display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
         gap: 4, padding: '0 8px',
       }}>
-        {!isPlanned && (
-          <button
-            onClick={() => onEdit(index)}
-            style={{ width: 38, height: 38, borderRadius: 10, background: 'oklch(88% 0.06 240)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--savings)' }}
-          >
-            <EditIcon />
-          </button>
-        )}
+        <button
+          onClick={() => onEdit(index)}
+          style={{ width: 38, height: 38, borderRadius: 10, background: 'oklch(88% 0.06 240)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--savings)' }}
+        >
+          <EditIcon />
+        </button>
         <button
           onClick={() => onDelete(index)}
           style={{ width: 38, height: 38, borderRadius: 10, background: 'oklch(88% 0.06 22)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--expense)' }}
