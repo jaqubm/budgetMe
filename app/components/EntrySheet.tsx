@@ -10,6 +10,7 @@ interface FormState {
   constant: boolean;
   planned: boolean;
   fromSavings: boolean;
+  subCategory: string;
 }
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
   category: Category;
   isFuture: boolean;
   currentYm: string;
+  existingSubCategories?: string[];
 }
 
 function Toggle({ value, onChange, color, label, sub }: { value: boolean; onChange: () => void; color: string; label: string; sub: string }) {
@@ -36,7 +38,7 @@ function Toggle({ value, onChange, color, label, sub }: { value: boolean; onChan
   );
 }
 
-export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFuture, currentYm }: Props) {
+export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFuture, currentYm, existingSubCategories }: Props) {
   const { t } = useT();
 
   const CAT_COLORS: Record<Category, string> = {
@@ -54,15 +56,15 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
   const catLabel = CAT_LABELS[category];
   const defaultDate = `${currentYm}-01`;
 
-  const [form, setForm] = useState<FormState>({ date: defaultDate, amount: '', description: '', constant: false, planned: false, fromSavings: false });
+  const [form, setForm] = useState<FormState>({ date: defaultDate, amount: '', description: '', constant: false, planned: false, fromSavings: false, subCategory: '' });
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
 
   useEffect(() => {
     if (visible) {
       if (editEntry) {
-        setForm({ ...editEntry, amount: String(editEntry.amount) });
+        setForm({ ...editEntry, amount: String(editEntry.amount), subCategory: editEntry.subCategory ?? '' });
       } else {
-        setForm({ date: defaultDate, amount: '', description: '', constant: false, planned: isFuture, fromSavings: false });
+        setForm({ date: defaultDate, amount: '', description: '', constant: false, planned: isFuture, fromSavings: false, subCategory: '' });
       }
       setErrors({});
     }
@@ -79,7 +81,7 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
 
   const handleSave = () => {
     if (!validate()) return;
-    onSave({ ...form, amount: parseFloat(form.amount), plannedAmount: undefined });
+    onSave({ ...form, amount: parseFloat(form.amount), plannedAmount: undefined, subCategory: form.subCategory || undefined });
     onClose();
   };
 
@@ -119,6 +121,24 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
             {errors.description && <div style={{ fontSize: 11, color: 'var(--expense)', marginTop: 3 }}>{errors.description}</div>}
+          </div>
+
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>
+              {t.subCategory} <span style={{ fontWeight: 400, color: 'var(--text-3)' }}>({t.general})</span>
+            </label>
+            <input
+              list="sheet-subcats"
+              style={inp()}
+              placeholder={t.subCategoryPlaceholder}
+              value={form.subCategory}
+              onChange={(e) => setForm((f) => ({ ...f, subCategory: e.target.value }))}
+            />
+            {existingSubCategories && existingSubCategories.length > 0 && (
+              <datalist id="sheet-subcats">
+                {existingSubCategories.map(s => <option key={s} value={s} />)}
+              </datalist>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: 10 }}>

@@ -17,7 +17,7 @@ export default async function DashboardPage({ params }: Props) {
   const todayYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const isFutureMth = `${year}-${month}` > todayYm;
 
-  const { wasNew, income, expenses, savings, startBalance, openingSavings } = await initAndGetMonth(
+  const { wasNew, income, expenses, savings, startBalance, openingSavings, groupOrder } = await initAndGetMonth(
     session.accessToken, year, month
   );
 
@@ -30,6 +30,7 @@ export default async function DashboardPage({ params }: Props) {
     savings:       markPlanned(savings),
     startBalance,
     openingSavings,
+    groupOrder,
   };
 
   return (

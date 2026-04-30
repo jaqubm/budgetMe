@@ -8,6 +8,13 @@ export interface Entry {
   planned: boolean;
   plannedAmount?: number; // set after verification
   fromSavings: boolean;   // draws from the savings pool (income and expenses only)
+  subCategory?: string;  // optional sub-category; undefined = General
+}
+
+export interface GroupOrder {
+  income: string[];
+  expenses: string[];
+  savings: string[];
 }
 
 export interface MonthData {
@@ -16,6 +23,7 @@ export interface MonthData {
   savings: Entry[];
   startBalance: number;
   openingSavings: number; // previous month's closing savings pool balance
+  groupOrder: GroupOrder;
 }
 
 export const CATEGORIES: { key: Category; label: string }[] = [

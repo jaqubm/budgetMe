@@ -59,6 +59,9 @@ export interface Translations {
   prevMonthSavings: string;
   syncRecurring: string;
   syncRecurringDone: (n: number) => string;
+  subCategory: string;
+  subCategoryPlaceholder: string;
+  general: string;
   continueWithGoogle: string;
   signingIn: string;
   tagline: string;
@@ -124,6 +127,9 @@ export const translations: Record<Lang, Translations> = {
     prevMonthSavings: 'prev. month',
     syncRecurring: 'Re-apply recurring',
     syncRecurringDone: (n) => n > 0 ? `${n} recurring entr${n === 1 ? 'y' : 'ies'} added` : 'All recurring entries already present',
+    subCategory: 'Sub-category',
+    subCategoryPlaceholder: 'e.g. Subscriptions',
+    general: 'General',
     continueWithGoogle: 'Continue with Google',
     signingIn: 'Signing in\u2026',
     tagline: 'Your finances, stored\nonly on your Google Drive.',
@@ -187,6 +193,9 @@ export const translations: Record<Lang, Translations> = {
     prevMonthSavings: 'poprz. miesiąc',
     syncRecurring: 'Ponów cykliczne',
     syncRecurringDone: (n) => n > 0 ? `Dodano ${n} ${n === 1 ? 'wpis cykliczny' : 'wpisy cykliczne'}` : 'Wszystkie wpisy cykliczne już istnieją',
+    subCategory: 'Podkategoria',
+    subCategoryPlaceholder: 'np. Subskrypcje',
+    general: 'Ogólne',
     continueWithGoogle: 'Kontynuuj przez Google',
     signingIn: 'Logowanie\u2026',
     tagline: 'Twoje finanse, przechowywane\nwyłącznie na Twoim Dysku Google.',

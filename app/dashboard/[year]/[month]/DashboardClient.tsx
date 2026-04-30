@@ -2,8 +2,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import type { Category, Entry, MonthData } from '@/lib/types';
 import { Header } from '@/app/components/Header';
 import { MonthPicker } from '@/app/components/MonthPicker';
@@ -11,7 +9,7 @@ import { SummaryCard } from '@/app/components/SummaryCard';
 import { SummaryBar } from '@/app/components/SummaryBar';
 import { CategoryTabs } from '@/app/components/CategoryTabs';
 import { CategoryColumn } from '@/app/components/CategoryColumn';
-import { EntryRow } from '@/app/components/EntryRow';
+import { GroupedEntryList } from '@/app/components/GroupedEntryList';
 import { EntrySheet } from '@/app/components/EntrySheet';
 import { VerifySheet } from '@/app/components/VerifySheet';
 import { Modal } from '@/app/components/Modal';
@@ -88,13 +86,11 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
     }
   };
 
-  const mobileSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
-
-  const callReorder = useCallback(async (cat: Category, fromIndex: number, toIndex: number) => {
-    await fetch('/api/drive/reorder', {
+  const callSetEntries = useCallback(async (cat: Category, entries: Entry[], grpOrder: string[]) => {
+    await fetch('/api/drive/set-entries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ year, month, category: cat, fromIndex, toIndex }),
+      body: JSON.stringify({ year, month, category: cat, entries, groupOrder: grpOrder }),
     });
   }, [year, month]);
 
@@ -149,13 +145,10 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
   const mobileEntries  = getEntries(activeTab);
   const mobileCatColor = CAT_DEFS.find(c => c.key === activeTab)!.color;
 
-  const handleMobileAdd = async (entry: Entry) => {
-    setEntries(activeTab, [...mobileEntries, entry]);
-    await callApi('POST', activeTab, entry);
-  };
   const handleMobileEdit = async (entry: Entry) => {
     const idx = sheet.editIndex!;
     setEntries(activeTab, mobileEntries.map((e, i) => i === idx ? entry : e));
+    ensureSubCatInOrder(activeTab, entry.subCategory);
     await callApi('PUT', activeTab, { index: idx, ...entry });
   };
   const handleMobileDelete = async (i: number) => {
@@ -176,12 +169,22 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
     await callApi('PATCH', activeTab, { index: i, amount: actualAmount, planned: false, plannedAmount });
   };
 
+  function ensureSubCatInOrder(cat: Category, subCategory?: string) {
+    if (!subCategory) return;
+    setData(d => {
+      if (d.groupOrder[cat].includes(subCategory)) return d;
+      return { ...d, groupOrder: { ...d.groupOrder, [cat]: [...d.groupOrder[cat], subCategory] } };
+    });
+  }
+
   const handleDesktopAdd = async (cat: Category, entry: Entry) => {
     setEntries(cat, [...getEntries(cat), entry]);
+    ensureSubCatInOrder(cat, entry.subCategory);
     await callApi('POST', cat, entry);
   };
   const handleDesktopEdit = async (cat: Category, idx: number, entry: Entry) => {
     setEntries(cat, getEntries(cat).map((e, i) => i === idx ? entry : e));
+    ensureSubCatInOrder(cat, entry.subCategory);
     await callApi('PUT', cat, { index: idx, ...entry });
   };
   const handleDesktopDelete = async (cat: Category, i: number) => {
@@ -201,24 +204,26 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
     await callApi('PATCH', cat, { index: i, amount: actualAmount, planned: false, plannedAmount });
   };
 
-  const handleDesktopReorder = (cat: Category, fromIndex: number, toIndex: number) => {
-    setEntries(cat, arrayMove(getEntries(cat), fromIndex, toIndex));
-    callReorder(cat, fromIndex, toIndex).catch(() => {});
+  const handleDesktopEntriesChange = (cat: Category, newEntries: Entry[], newGroupOrder: string[]) => {
+    setData(d => ({ ...d, [cat]: newEntries, groupOrder: { ...d.groupOrder, [cat]: newGroupOrder } }));
+    callSetEntries(cat, newEntries, newGroupOrder).catch(() => {});
   };
 
-  const mobileIds = mobileEntries.map((e, i) => `${activeTab}-${i}-${e.description}`);
-  const handleMobileDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const fromIndex = mobileIds.indexOf(active.id as string);
-    const toIndex   = mobileIds.indexOf(over.id as string);
-    if (fromIndex === -1 || toIndex === -1) return;
-    setEntries(activeTab, arrayMove(mobileEntries, fromIndex, toIndex));
-    callReorder(activeTab, fromIndex, toIndex).catch(() => {});
+  const handleMobileAdd = async (entry: Entry) => {
+    const newEntries = [...mobileEntries, entry];
+    setEntries(activeTab, newEntries);
+    ensureSubCatInOrder(activeTab, entry.subCategory);
+    await callApi('POST', activeTab, entry);
   };
 
-  const plannedCount  = (Object.values(data) as Entry[][]).flat().filter(e => e.planned).length;
-  const verifiedCount = (Object.values(data) as Entry[][]).flat().filter(e => !e.planned && e.plannedAmount != null).length;
+  const handleMobileEntriesChange = (newEntries: Entry[], newGroupOrder: string[]) => {
+    setData(d => ({ ...d, [activeTab]: newEntries, groupOrder: { ...d.groupOrder, [activeTab]: newGroupOrder } }));
+    callSetEntries(activeTab, newEntries, newGroupOrder).catch(() => {});
+  };
+
+  const allEntries = [...data.income, ...data.expenses, ...data.savings];
+  const plannedCount  = allEntries.filter(e => e.planned).length;
+  const verifiedCount = allEntries.filter(e => !e.planned && e.plannedAmount != null).length;
   const hasPending: Record<Category, boolean> = {
     income:   getEntries('income').some(e => e.planned),
     expenses: getEntries('expenses').some(e => e.planned),
@@ -316,13 +321,14 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
               key={cat.key}
               cat={cat}
               entries={getEntries(cat.key)}
+              groupOrder={data.groupOrder[cat.key]}
               isFutureMonth={isFuture}
               onAdd={() => setAddModal({ open: true, category: cat.key })}
               onEdit={(i) => setEditModal({ open: true, category: cat.key, index: i })}
               onDelete={(i) => handleDesktopDelete(cat.key, i)}
               onToggleConstant={(i) => handleDesktopToggleConstant(cat.key, i)}
               onVerify={(i) => setVerifyModal({ open: true, category: cat.key, index: i })}
-              onReorder={(from, to) => handleDesktopReorder(cat.key, from, to)}
+              onEntriesChange={(newE, newG) => handleDesktopEntriesChange(cat.key, newE, newG)}
             />
           ))}
         </div>
@@ -332,6 +338,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
             <EntryForm
               cat={addCat}
               isFutureMonth={isFuture}
+              existingSubCategories={data.groupOrder[addModal.category!]}
               onCancel={() => setAddModal({ open: false, category: null })}
               onSave={(e) => { handleDesktopAdd(addModal.category!, e); setAddModal({ open: false, category: null }); }}
             />
@@ -345,8 +352,9 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
               <EntryForm
                 cat={editCat}
                 isFutureMonth={isFuture}
-                initial={{ ...entry, amount: String(entry.amount) }}
+                initial={{ ...entry, amount: String(entry.amount), subCategory: entry.subCategory ?? '' }}
                 submitLabel={t.saveChanges}
+                existingSubCategories={data.groupOrder[editModal.category!]}
                 onCancel={() => setEditModal({ open: false, category: null, index: null })}
                 onSave={(e) => { handleDesktopEdit(editModal.category!, editModal.index!, e); setEditModal({ open: false, category: null, index: null }); }}
               />
@@ -414,23 +422,18 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
             {isFuture && <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{t.planExpected(CAT_DEFS.find(c => c.key === activeTab)!.label.toLowerCase())}</div>}
           </div>
         ) : (
-          <DndContext sensors={mobileSensors} collisionDetection={closestCenter} onDragEnd={handleMobileDragEnd}>
-            <SortableContext items={mobileIds} strategy={verticalListSortingStrategy}>
-              {mobileEntries.map((entry, i) => (
-                <EntryRow
-                  key={mobileIds[i]}
-                  id={mobileIds[i]}
-                  entry={entry}
-                  index={i}
-                  color={mobileCatColor}
-                  onDelete={handleMobileDelete}
-                  onToggleConstant={handleMobileToggleConstant}
-                  onEdit={(i) => setSheet({ open: true, editIndex: i })}
-                  onVerify={(i) => setVerifySheet({ open: true, index: i })}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
+          <GroupedEntryList
+            entries={mobileEntries}
+            groupOrder={data.groupOrder[activeTab]}
+            catKey={activeTab}
+            catColor={mobileCatColor}
+            isDesktop={false}
+            onEdit={(i) => setSheet({ open: true, editIndex: i })}
+            onDelete={handleMobileDelete}
+            onToggleConstant={handleMobileToggleConstant}
+            onVerify={(i) => setVerifySheet({ open: true, index: i })}
+            onEntriesChange={handleMobileEntriesChange}
+          />
         )}
       </div>
 
@@ -465,6 +468,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
         category={activeTab}
         isFuture={isFuture}
         currentYm={ym}
+        existingSubCategories={data.groupOrder[activeTab]}
       />
 
       <VerifySheet

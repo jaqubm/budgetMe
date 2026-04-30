@@ -16,6 +16,7 @@ interface FormState {
   constant: boolean;
   planned: boolean;
   fromSavings: boolean;
+  subCategory: string;
 }
 
 interface Props {
@@ -25,6 +26,7 @@ interface Props {
   cat: CatDef;
   isFutureMonth: boolean;
   submitLabel?: string;
+  existingSubCategories?: string[];
 }
 
 function Toggle({ value, onChange, color, label, sub }: { value: boolean; onChange: () => void; color: string; label: string; sub: string }) {
@@ -44,16 +46,16 @@ function Toggle({ value, onChange, color, label, sub }: { value: boolean; onChan
   );
 }
 
-export function EntryForm({ initial, onSave, onCancel, cat, isFutureMonth, submitLabel }: Props) {
+export function EntryForm({ initial, onSave, onCancel, cat, isFutureMonth, submitLabel, existingSubCategories }: Props) {
   const { t } = useT();
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState<FormState>(
-    initial ?? { date: today, amount: '', description: '', constant: false, planned: isFutureMonth, fromSavings: false }
+    initial ?? { date: today, amount: '', description: '', constant: false, planned: isFutureMonth, fromSavings: false, subCategory: '' }
   );
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
 
   useEffect(() => {
-    setForm(initial ?? { date: today, amount: '', description: '', constant: false, planned: isFutureMonth, fromSavings: false });
+    setForm(initial ?? { date: today, amount: '', description: '', constant: false, planned: isFutureMonth, fromSavings: false, subCategory: '' });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const validate = (): boolean => {
@@ -71,6 +73,8 @@ export function EntryForm({ initial, onSave, onCancel, cat, isFutureMonth, submi
     color: 'var(--text)', background: 'var(--bg)', outline: 'none', transition: 'border-color 0.15s',
   });
 
+  const datalistId = `subcats-${cat.key}`;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div>
@@ -83,6 +87,23 @@ export function EntryForm({ initial, onSave, onCancel, cat, isFutureMonth, submi
           autoFocus
         />
         {errors.description && <div style={{ fontSize: 11, color: 'var(--expense)', marginTop: 2 }}>{errors.description}</div>}
+      </div>
+      <div>
+        <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)', marginBottom: 5, display: 'block' }}>
+          {t.subCategory} <span style={{ fontWeight: 400, color: 'var(--text-3)' }}>({t.general})</span>
+        </label>
+        <input
+          list={datalistId}
+          style={inp()}
+          placeholder={t.subCategoryPlaceholder}
+          value={form.subCategory}
+          onChange={(e) => setForm((f) => ({ ...f, subCategory: e.target.value }))}
+        />
+        {existingSubCategories && existingSubCategories.length > 0 && (
+          <datalist id={datalistId}>
+            {existingSubCategories.map(s => <option key={s} value={s} />)}
+          </datalist>
+        )}
       </div>
       <div style={{ display: 'flex', gap: 10 }}>
         <div style={{ flex: 1 }}>
@@ -119,7 +140,7 @@ export function EntryForm({ initial, onSave, onCancel, cat, isFutureMonth, submi
           {t.cancel}
         </button>
         <button
-          onClick={() => { if (validate()) onSave({ ...form, amount: parseFloat(form.amount), plannedAmount: undefined }); }}
+          onClick={() => { if (validate()) onSave({ ...form, amount: parseFloat(form.amount), plannedAmount: undefined, subCategory: form.subCategory || undefined }); }}
           style={{ flex: 2, padding: '10px', borderRadius: 8, border: 'none', background: form.planned ? 'var(--planned)' : cat.color, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'white', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
         >
           {submitLabel ?? (form.planned ? t.addAsPlanned : t.addEntry)}

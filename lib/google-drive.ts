@@ -1,10 +1,12 @@
 import { google } from 'googleapis';
-import type { Entry, Category } from './types';
+import type { Entry, Category, GroupOrder } from './types';
 
 // Root "budgetMe" folder ID is stable — cache across warm function instances.
 const folderCache = new Map<string, string>();
 // Month file IDs are stable — cache to skip redundant list calls.
 const fileIdCache = new Map<string, string>();
+
+const EMPTY_GROUP_ORDER: GroupOrder = { income: [], expenses: [], savings: [] };
 
 interface MonthFile {
   income: Entry[];
@@ -12,7 +14,19 @@ interface MonthFile {
   savings: Entry[];
   startBalance: number;
   savingsClosing: number;
+  groupOrder?: GroupOrder;
   // openingSavings is NOT stored — always read live from prev month's savingsClosing
+}
+
+function ensureGroupOrder(data: MonthFile): GroupOrder {
+  if (!data.groupOrder) data.groupOrder = { income: [], expenses: [], savings: [] };
+  return data.groupOrder;
+}
+
+function addSubCategoryToOrder(data: MonthFile, category: Category, subCategory?: string) {
+  if (!subCategory) return;
+  const go = ensureGroupOrder(data);
+  if (!go[category].includes(subCategory)) go[category].push(subCategory);
 }
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 500): Promise<T> {
@@ -172,7 +186,7 @@ export async function initAndGetMonth(
   accessToken: string,
   year: string,
   month: string
-): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[]; startBalance: number; openingSavings: number }> {
+): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[]; startBalance: number; openingSavings: number; groupOrder: GroupOrder }> {
   try {
     return await _initAndGetMonth(accessToken, year, month);
   } catch (err: unknown) {
@@ -190,7 +204,7 @@ async function _initAndGetMonth(
   accessToken: string,
   year: string,
   month: string
-): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[]; startBalance: number; openingSavings: number }> {
+): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[]; startBalance: number; openingSavings: number; groupOrder: GroupOrder }> {
   const drive  = driveClient(accessToken);
   const rootId = await getRootFolderId(drive);
   const { year: py, month: pm } = prevYearMonth(year, month);
@@ -216,6 +230,7 @@ async function _initAndGetMonth(
       savings:        data.savings,
       startBalance:   data.startBalance,
       openingSavings,
+      groupOrder:     data.groupOrder ?? { ...EMPTY_GROUP_ORDER },
     };
   }
 
@@ -224,6 +239,7 @@ async function _initAndGetMonth(
   let income:   Entry[] = [];
   let expenses: Entry[] = [];
   let savings:  Entry[] = [];
+  let groupOrder: GroupOrder = { income: [], expenses: [], savings: [] };
 
   if (prevFileId) {
     const prev      = await readMonthFile(drive, prevFileId);
@@ -232,9 +248,10 @@ async function _initAndGetMonth(
     income   = prev.income.filter(e => e.constant).map(e => ({ ...e, date: firstDate }));
     expenses = prev.expenses.filter(e => e.constant).map(e => ({ ...e, date: firstDate }));
     savings  = prev.savings.filter(e => e.constant).map(e => ({ ...e, date: firstDate }));
+    groupOrder = prev.groupOrder ?? { ...EMPTY_GROUP_ORDER };
   }
 
-  const newFile: MonthFile = { income, expenses, savings, startBalance: 0, savingsClosing: 0 };
+  const newFile: MonthFile = { income, expenses, savings, startBalance: 0, savingsClosing: 0, groupOrder };
   newFile.savingsClosing = computeSavingsClosing(newFile, openingSavings);
   await createMonthFile(drive, monthFileName(year, month), rootId, newFile);
 
@@ -245,6 +262,7 @@ async function _initAndGetMonth(
     savings:        newFile.savings,
     startBalance:   newFile.startBalance,
     openingSavings,
+    groupOrder,
   };
 }
 
@@ -271,7 +289,10 @@ export async function addEntry(
 ): Promise<void> {
   const drive  = driveClient(accessToken);
   const rootId = await getRootFolderId(drive);
-  await mutateMonth(drive, rootId, year, month, data => { data[category].push(entry); });
+  await mutateMonth(drive, rootId, year, month, data => {
+    data[category].push(entry);
+    addSubCategoryToOrder(data, category, entry.subCategory);
+  });
 }
 
 export async function updateEntry(
@@ -284,7 +305,28 @@ export async function updateEntry(
 ): Promise<void> {
   const drive  = driveClient(accessToken);
   const rootId = await getRootFolderId(drive);
-  await mutateMonth(drive, rootId, year, month, data => { data[category][index] = entry; });
+  await mutateMonth(drive, rootId, year, month, data => {
+    data[category][index] = entry;
+    addSubCategoryToOrder(data, category, entry.subCategory);
+  });
+}
+
+export async function setEntries(
+  accessToken: string,
+  year: string,
+  month: string,
+  category: Category,
+  entries: Entry[],
+  groupOrder?: string[]
+): Promise<void> {
+  const drive  = driveClient(accessToken);
+  const rootId = await getRootFolderId(drive);
+  await mutateMonth(drive, rootId, year, month, data => {
+    data[category] = entries;
+    if (groupOrder !== undefined) {
+      ensureGroupOrder(data)[category] = groupOrder;
+    }
+  });
 }
 
 export async function patchEntry(
