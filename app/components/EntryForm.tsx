@@ -107,6 +107,9 @@ export function EntryForm({ initial, onSave, onCancel, cat, isFutureMonth, submi
         </div>
       </div>
       <Toggle value={form.planned} onChange={() => setForm((f) => ({ ...f, planned: !f.planned }))} color="var(--planned)" label={t.plannedEntry} sub={t.plannedEntrySub} />
+      {cat.key !== 'savings' && (
+        <Toggle value={form.fromSavings} onChange={() => setForm((f) => ({ ...f, fromSavings: !f.fromSavings }))} color="var(--savings)" label={t.fromSavings} sub={t.fromSavingsSub} />
+      )}
       <Toggle value={form.constant} onChange={() => setForm((f) => ({ ...f, constant: !f.constant }))} color={cat.color} label={t.recurringEntry} sub={t.recurringEntrySub} />
       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
         <button

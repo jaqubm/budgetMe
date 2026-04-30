@@ -60,7 +60,7 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
   useEffect(() => {
     if (visible) {
       if (editEntry) {
-        setForm({ ...editEntry, amount: String(editEntry.amount) });
+        setForm({ ...editEntry, amount: String(editEntry.amount), fromSavings: editEntry.fromSavings ?? false });
       } else {
         setForm({ date: defaultDate, amount: '', description: '', constant: false, planned: isFuture, fromSavings: false });
       }
@@ -151,6 +151,16 @@ export function EntrySheet({ visible, onClose, onSave, editEntry, category, isFu
             label={t.plannedEntry}
             sub={t.plannedEntrySub}
           />
+
+          {category !== 'savings' && (
+            <Toggle
+              value={form.fromSavings}
+              onChange={() => setForm((f) => ({ ...f, fromSavings: !f.fromSavings }))}
+              color="var(--savings)"
+              label={t.fromSavings}
+              sub={t.fromSavingsSub}
+            />
+          )}
 
           <Toggle
             value={form.constant}
