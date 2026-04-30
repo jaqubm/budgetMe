@@ -1,5 +1,5 @@
 'use client';
-import { ChevronLeft, ChevronRight, ClockIcon } from './icons';
+import { ChevronLeft, ChevronRight } from './icons';
 import { useT } from './LanguageContext';
 
 function parseYM(ym: string) {
@@ -32,7 +32,6 @@ export function MonthPicker({ ym, todayYm, onChange, disabled }: Props) {
   const { t } = useT();
   const { year, month } = parseYM(ym);
   const isFuture = ym > todayYm;
-  const isToday  = ym === todayYm;
 
   return (
     <div style={{ padding: '10px 14px 0' }}>
@@ -63,31 +62,6 @@ export function MonthPicker({ ym, todayYm, onChange, disabled }: Props) {
         </button>
       </div>
 
-      {!isToday && (
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
-          <button
-            onClick={() => onChange(todayYm)}
-            disabled={disabled}
-            style={{
-              background: 'none',
-              border: '1px solid var(--border)',
-              borderRadius: 20,
-              padding: '3px 12px',
-              fontSize: 11.5,
-              fontWeight: 600,
-              color: disabled ? 'var(--text-3)' : 'var(--text-2)',
-              cursor: disabled ? 'not-allowed' : 'pointer',
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              opacity: disabled ? 0.4 : 1,
-            }}
-          >
-            <ClockIcon /> {t.today}
-          </button>
-        </div>
-      )}
     </div>
   );
 }

@@ -393,7 +393,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
   /* ── Mobile layout ──────────────────────────────────────── */
   return (
     <div style={{ height: '100svh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
-      <Header />
+      <Header ym={ym} todayYm={todayYm} onToday={() => handleChangeMonth(todayYm)} disabled={loading} />
       <MonthPicker ym={ym} todayYm={todayYm} onChange={handleChangeMonth} disabled={loading} />
       <SummaryCard income={data.income ?? []} expenses={data.expenses ?? []} savings={data.savings ?? []} isFuture={isFuture} startBalance={startBal} openingSavings={data.openingSavings} onEditStartBalance={() => setEditingBal(true)} />
 
