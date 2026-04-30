@@ -60,6 +60,32 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
   const [startBal, setStartBal]     = useState(initialData.startBalance);
   const [editingBal, setEditingBal] = useState(false);
 
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  const handleSyncRecurring = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/drive/sync-recurring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year, month }),
+      });
+      const { added } = await res.json() as { added: number };
+      if (added > 0) {
+        const [incRes, expRes, savRes] = await Promise.all([
+          fetch(`/api/drive/entries?year=${year}&month=${month}&category=income`).then(r => r.json()),
+          fetch(`/api/drive/entries?year=${year}&month=${month}&category=expenses`).then(r => r.json()),
+          fetch(`/api/drive/entries?year=${year}&month=${month}&category=savings`).then(r => r.json()),
+        ]);
+        setData(d => ({ ...d, income: incRes.entries, expenses: expRes.entries, savings: savRes.entries }));
+      }
+      setSyncMsg(t.syncRecurringDone(added));
+      setTimeout(() => setSyncMsg(null), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const [sheet, setSheet]             = useState<{ open: boolean; editIndex: number | null }>({ open: false, editIndex: null });
   const [verifySheet, setVerifySheet] = useState<{ open: boolean; index: number | null }>({ open: false, index: null });
 
@@ -235,6 +261,15 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
                 {t.today}
               </button>
             )}
+            <button
+              onClick={handleSyncRecurring}
+              disabled={loading}
+              title={t.syncRecurring}
+              style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5, opacity: loading ? 0.4 : 1 }}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+              {t.syncRecurring}
+            </button>
             <LangToggle lang={lang} setLang={setLang} />
             <button
               onClick={() => signOut({ callbackUrl: '/sign-in' })}
@@ -313,7 +348,8 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
       </div>
       <StartBalanceEditor visible={editingBal} current={startBal} isDesktop={true} onSave={handleSaveStartBal} onClose={() => setEditingBal(false)} />
       <SavingToast visible={loading} isDesktop={true} />
-      </>
+      <SyncToast message={syncMsg} isDesktop={true} />
+</>
     );
   }
 
@@ -328,8 +364,18 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
       {isFuture && plannedCount > 0 && <PlannedBanner plannedCount={plannedCount} verifiedCount={verifiedCount} />}
 
       <CategoryTabs active={activeTab} onChange={setActiveTab} hasPending={hasPending} />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 14px 0' }}>
+        <button
+          onClick={handleSyncRecurring}
+          disabled={loading}
+          style={{ background: 'none', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--text-3)', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4, padding: '2px 0', opacity: loading ? 0.4 : 1 }}
+        >
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+          {t.syncRecurring}
+        </button>
+      </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
         {mobileEntries.length === 0 ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 40 }}>
             <div style={{ width: 48, height: 48, borderRadius: 16, background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -396,6 +442,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
       />
       <StartBalanceEditor visible={editingBal} current={startBal} isDesktop={false} onSave={handleSaveStartBal} onClose={() => setEditingBal(false)} />
       <SavingToast visible={loading} isDesktop={false} />
+      <SyncToast message={syncMsg} isDesktop={false} />
     </div>
   );
 }
@@ -509,6 +556,31 @@ function SavingToast({ visible, isDesktop }: { visible: boolean; isDesktop: bool
         flexShrink: 0,
       }} />
       {t.saving}
+    </div>
+  );
+}
+
+function SyncToast({ message, isDesktop }: { message: string | null; isDesktop: boolean }) {
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: isDesktop ? '24px' : 'calc(80px + env(safe-area-inset-bottom, 0px))',
+      left: '50%',
+      transform: `translateX(-50%) translateY(${message ? 0 : 8}px)`,
+      zIndex: 200,
+      background: 'var(--text)',
+      color: 'white',
+      padding: '8px 14px',
+      borderRadius: 20,
+      fontSize: 12.5,
+      fontWeight: 600,
+      boxShadow: '0 4px 20px oklch(0% 0 0 / 0.3)',
+      opacity: message ? 1 : 0,
+      pointerEvents: 'none',
+      transition: 'opacity 0.18s, transform 0.18s',
+      whiteSpace: 'nowrap',
+    }}>
+      {message}
     </div>
   );
 }

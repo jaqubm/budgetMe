@@ -71,7 +71,7 @@ export function DesktopEntryRow({ entry, index, color, onDelete, onToggleConstan
         )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2, opacity: hovered ? 1 : 0, transition: 'opacity 0.15s', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, maxWidth: hovered ? 200 : 0, overflow: 'hidden', opacity: hovered ? 1 : 0, transition: 'opacity 0.15s, max-width 0.15s', flexShrink: 0 }}>
         {isPlanned ? (
           <button
             onClick={() => onVerify(index)}

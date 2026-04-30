@@ -57,6 +57,8 @@ export interface Translations {
   fromSavingsSub: string;
   savingsBalance: string;
   prevMonthSavings: string;
+  syncRecurring: string;
+  syncRecurringDone: (n: number) => string;
   continueWithGoogle: string;
   signingIn: string;
   tagline: string;
@@ -120,6 +122,8 @@ export const translations: Record<Lang, Translations> = {
     fromSavingsSub: 'This transaction draws from the savings pool',
     savingsBalance: 'Savings balance',
     prevMonthSavings: 'prev. month',
+    syncRecurring: 'Re-apply recurring',
+    syncRecurringDone: (n) => n > 0 ? `${n} recurring entr${n === 1 ? 'y' : 'ies'} added` : 'All recurring entries already present',
     continueWithGoogle: 'Continue with Google',
     signingIn: 'Signing in\u2026',
     tagline: 'Your finances, stored\nonly on your Google Drive.',
@@ -181,6 +185,8 @@ export const translations: Record<Lang, Translations> = {
     fromSavingsSub: 'Ta transakcja pochodzi z puli oszczędności',
     savingsBalance: 'Saldo oszczędności',
     prevMonthSavings: 'poprz. miesiąc',
+    syncRecurring: 'Ponów cykliczne',
+    syncRecurringDone: (n) => n > 0 ? `Dodano ${n} ${n === 1 ? 'wpis cykliczny' : 'wpisy cykliczne'}` : 'Wszystkie wpisy cykliczne już istnieją',
     continueWithGoogle: 'Kontynuuj przez Google',
     signingIn: 'Logowanie\u2026',
     tagline: 'Twoje finanse, przechowywane\nwyłącznie na Twoim Dysku Google.',

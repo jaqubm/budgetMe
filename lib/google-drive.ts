@@ -314,6 +314,49 @@ export async function deleteEntry(
   await mutateMonth(drive, rootId, year, month, data => { data[category].splice(index, 1); });
 }
 
+export async function syncRecurring(
+  accessToken: string,
+  year: string,
+  month: string
+): Promise<{ added: number }> {
+  const drive  = driveClient(accessToken);
+  const rootId = await getRootFolderId(drive);
+  const { year: py, month: pm } = prevYearMonth(year, month);
+
+  const [fileId, prevFileId] = await Promise.all([
+    findFileId(drive, monthFileName(year, month), rootId),
+    findFileId(drive, monthFileName(py, pm), rootId),
+  ]);
+  if (!fileId || !prevFileId) return { added: 0 };
+
+  const [data, prev] = await Promise.all([
+    readMonthFile(drive, fileId),
+    readMonthFile(drive, prevFileId),
+  ]);
+
+  const firstDate = firstOfMonth(year, month);
+  let added = 0;
+
+  for (const cat of ['income', 'expenses', 'savings'] as Category[]) {
+    for (const entry of prev[cat].filter(e => e.constant)) {
+      const exists = data[cat].some(
+        e => e.description.trim().toLowerCase() === entry.description.trim().toLowerCase()
+      );
+      if (!exists) {
+        data[cat].push({ ...entry, date: firstDate });
+        added++;
+      }
+    }
+  }
+
+  if (added > 0) {
+    data.savingsClosing = computeSavingsClosing(data, prev.savingsClosing);
+    await writeMonthFile(drive, fileId, data);
+  }
+
+  return { added };
+}
+
 export async function setStartBalance(
   accessToken: string,
   year: string,
