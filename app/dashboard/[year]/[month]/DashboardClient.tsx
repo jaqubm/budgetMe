@@ -2,6 +2,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import type { Category, Entry, MonthData } from '@/lib/types';
 import { Header } from '@/app/components/Header';
 import { MonthPicker } from '@/app/components/MonthPicker';
@@ -85,6 +87,16 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
       setLoading(false);
     }
   };
+
+  const mobileSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const callReorder = useCallback(async (cat: Category, fromIndex: number, toIndex: number) => {
+    await fetch('/api/drive/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year, month, category: cat, fromIndex, toIndex }),
+    });
+  }, [year, month]);
 
   const [sheet, setSheet]             = useState<{ open: boolean; editIndex: number | null }>({ open: false, editIndex: null });
   const [verifySheet, setVerifySheet] = useState<{ open: boolean; index: number | null }>({ open: false, index: null });
@@ -187,6 +199,22 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
       idx === i ? { ...e, amount: actualAmount, planned: false, plannedAmount } : e
     ));
     await callApi('PATCH', cat, { index: i, amount: actualAmount, planned: false, plannedAmount });
+  };
+
+  const handleDesktopReorder = (cat: Category, fromIndex: number, toIndex: number) => {
+    setEntries(cat, arrayMove(getEntries(cat), fromIndex, toIndex));
+    callReorder(cat, fromIndex, toIndex).catch(() => {});
+  };
+
+  const mobileIds = mobileEntries.map((e, i) => `${activeTab}-${i}-${e.description}`);
+  const handleMobileDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const fromIndex = mobileIds.indexOf(active.id as string);
+    const toIndex   = mobileIds.indexOf(over.id as string);
+    if (fromIndex === -1 || toIndex === -1) return;
+    setEntries(activeTab, arrayMove(mobileEntries, fromIndex, toIndex));
+    callReorder(activeTab, fromIndex, toIndex).catch(() => {});
   };
 
   const plannedCount  = (Object.values(data) as Entry[][]).flat().filter(e => e.planned).length;
@@ -294,6 +322,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
               onDelete={(i) => handleDesktopDelete(cat.key, i)}
               onToggleConstant={(i) => handleDesktopToggleConstant(cat.key, i)}
               onVerify={(i) => setVerifyModal({ open: true, category: cat.key, index: i })}
+              onReorder={(from, to) => handleDesktopReorder(cat.key, from, to)}
             />
           ))}
         </div>
@@ -385,18 +414,23 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
             {isFuture && <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{t.planExpected(CAT_DEFS.find(c => c.key === activeTab)!.label.toLowerCase())}</div>}
           </div>
         ) : (
-          mobileEntries.map((entry, i) => (
-            <EntryRow
-              key={`${activeTab}-${i}`}
-              entry={entry}
-              index={i}
-              color={mobileCatColor}
-              onDelete={handleMobileDelete}
-              onToggleConstant={handleMobileToggleConstant}
-              onEdit={(i) => setSheet({ open: true, editIndex: i })}
-              onVerify={(i) => setVerifySheet({ open: true, index: i })}
-            />
-          ))
+          <DndContext sensors={mobileSensors} collisionDetection={closestCenter} onDragEnd={handleMobileDragEnd}>
+            <SortableContext items={mobileIds} strategy={verticalListSortingStrategy}>
+              {mobileEntries.map((entry, i) => (
+                <EntryRow
+                  key={mobileIds[i]}
+                  id={mobileIds[i]}
+                  entry={entry}
+                  index={i}
+                  color={mobileCatColor}
+                  onDelete={handleMobileDelete}
+                  onToggleConstant={handleMobileToggleConstant}
+                  onEdit={(i) => setSheet({ open: true, editIndex: i })}
+                  onVerify={(i) => setVerifySheet({ open: true, index: i })}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 

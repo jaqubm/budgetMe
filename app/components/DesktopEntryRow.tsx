@@ -1,10 +1,13 @@
 'use client';
 import { useState } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { Entry } from '@/lib/types';
-import { PinIcon, TrashIcon, EditIcon, CheckIcon } from './icons';
+import { PinIcon, TrashIcon, EditIcon, CheckIcon, DragHandle } from './icons';
 import { useT } from './LanguageContext';
 
 interface Props {
+  id: string;
   entry: Entry;
   index: number;
   color: string;
@@ -14,28 +17,35 @@ interface Props {
   onVerify: (i: number) => void;
 }
 
-export function DesktopEntryRow({ entry, index, color, onDelete, onToggleConstant, onEdit, onVerify }: Props) {
+export function DesktopEntryRow({ id, entry, index, color, onDelete, onToggleConstant, onEdit, onVerify }: Props) {
   const { t, fmt } = useT();
   const [hovered, setHovered] = useState(false);
   const isPlanned = entry.planned;
   const hasPlannedRecord = !isPlanned && entry.plannedAmount != null;
   const amountChanged = hasPlannedRecord && entry.plannedAmount !== entry.amount;
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
   return (
     <div
+      ref={setNodeRef}
+      {...attributes}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'grid',
-        gridTemplateColumns: '20px 1fr auto auto',
+        gridTemplateColumns: '20px 1fr auto auto auto',
         alignItems: 'center',
         gap: 8,
         padding: '7px 10px',
         borderRadius: 8,
-        background: isPlanned ? 'var(--planned-bg)' : (hovered ? 'var(--bg)' : 'transparent'),
+        background: isDragging ? 'var(--surface)' : isPlanned ? 'var(--planned-bg)' : (hovered ? 'var(--bg)' : 'transparent'),
         borderLeft: isPlanned ? '2px dashed var(--planned-border)' : '2px solid transparent',
-        transition: 'background 0.1s',
+        transition: transition ?? 'background 0.1s',
+        transform: CSS.Transform.toString(transform),
+        opacity: isDragging ? 0.5 : 1,
         cursor: 'default',
+        zIndex: isDragging ? 1 : 'auto',
       }}
     >
       <button
@@ -75,7 +85,6 @@ export function DesktopEntryRow({ entry, index, color, onDelete, onToggleConstan
         {isPlanned ? (
           <button
             onClick={() => onVerify(index)}
-            title="Verify"
             style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '4px 7px', borderRadius: 6, background: 'oklch(92% 0.005 260)', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--text-2)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
             <CheckIcon /> {t.verify}
@@ -83,7 +92,6 @@ export function DesktopEntryRow({ entry, index, color, onDelete, onToggleConstan
         ) : (
           <button
             onClick={() => onEdit(index)}
-            title="Edit"
             style={{ width: 26, height: 26, borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}
           >
             <EditIcon />
@@ -91,11 +99,17 @@ export function DesktopEntryRow({ entry, index, color, onDelete, onToggleConstan
         )}
         <button
           onClick={() => onDelete(index)}
-          title="Delete"
           style={{ width: 26, height: 26, borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}
         >
           <TrashIcon />
         </button>
+      </div>
+
+      <div
+        {...listeners}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, opacity: hovered ? 0.35 : 0, transition: 'opacity 0.15s', cursor: 'grab', flexShrink: 0, color: 'var(--text-3)' }}
+      >
+        <DragHandle />
       </div>
     </div>
   );

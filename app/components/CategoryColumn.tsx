@@ -1,4 +1,6 @@
 'use client';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { Category, Entry } from '@/lib/types';
 import { DesktopEntryRow } from './DesktopEntryRow';
 import { PlusIcon } from './icons';
@@ -23,13 +25,25 @@ interface Props {
   onDelete: (i: number) => void;
   onToggleConstant: (i: number) => void;
   onVerify: (i: number) => void;
+  onReorder: (fromIndex: number, toIndex: number) => void;
 }
 
-export function CategoryColumn({ cat, entries, isFutureMonth, onAdd, onEdit, onDelete, onToggleConstant, onVerify }: Props) {
+export function CategoryColumn({ cat, entries, isFutureMonth, onAdd, onEdit, onDelete, onToggleConstant, onVerify, onReorder }: Props) {
   const { t, fmt } = useT();
   const actual  = sumActual(entries);
   const planned = sumPlanned(entries);
   const hasPending = entries.some(e => e.planned);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const ids = entries.map((e, i) => `${cat.key}-${i}-${e.description}`);
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const fromIndex = ids.indexOf(active.id as string);
+    const toIndex   = ids.indexOf(over.id as string);
+    if (fromIndex !== -1 && toIndex !== -1) onReorder(fromIndex, toIndex);
+  }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, borderRight: '1px solid var(--border)' }}>
@@ -57,18 +71,23 @@ export function CategoryColumn({ cat, entries, isFutureMonth, onAdd, onEdit, onD
             {isFutureMonth ? t.planExpected(cat.label.toLowerCase()) : t.noEntriesYet(cat.label.toLowerCase())}
           </div>
         ) : (
-          entries.map((entry, i) => (
-            <DesktopEntryRow
-              key={`${cat.key}-${i}`}
-              entry={entry}
-              index={i}
-              color={cat.color}
-              onDelete={onDelete}
-              onEdit={onEdit}
-              onToggleConstant={onToggleConstant}
-              onVerify={onVerify}
-            />
-          ))
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+              {entries.map((entry, i) => (
+                <DesktopEntryRow
+                  key={ids[i]}
+                  id={ids[i]}
+                  entry={entry}
+                  index={i}
+                  color={cat.color}
+                  onDelete={onDelete}
+                  onEdit={onEdit}
+                  onToggleConstant={onToggleConstant}
+                  onVerify={onVerify}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 

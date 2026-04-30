@@ -314,6 +314,22 @@ export async function deleteEntry(
   await mutateMonth(drive, rootId, year, month, data => { data[category].splice(index, 1); });
 }
 
+export async function reorderEntries(
+  accessToken: string,
+  year: string,
+  month: string,
+  category: Category,
+  fromIndex: number,
+  toIndex: number
+): Promise<void> {
+  const drive  = driveClient(accessToken);
+  const rootId = await getRootFolderId(drive);
+  await mutateMonth(drive, rootId, year, month, data => {
+    const [item] = data[category].splice(fromIndex, 1);
+    data[category].splice(toIndex, 0, item);
+  });
+}
+
 export async function syncRecurring(
   accessToken: string,
   year: string,

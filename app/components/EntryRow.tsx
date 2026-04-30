@@ -1,10 +1,13 @@
 'use client';
 import { useRef, useState } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { Entry } from '@/lib/types';
-import { PinIcon, TrashIcon, EditIcon, CheckIcon } from './icons';
+import { PinIcon, TrashIcon, EditIcon, CheckIcon, DragHandle } from './icons';
 import { useT } from './LanguageContext';
 
 interface Props {
+  id: string;
   entry: Entry;
   index: number;
   color: string;
@@ -14,12 +17,14 @@ interface Props {
   onVerify: (i: number) => void;
 }
 
-export function EntryRow({ entry, index, color, onDelete, onToggleConstant, onEdit, onVerify }: Props) {
+export function EntryRow({ id, entry, index, color, onDelete, onToggleConstant, onEdit, onVerify }: Props) {
   const { t, fmt } = useT();
   const [swiped, setSwiped] = useState(false);
   const touchStart = useRef<number | null>(null);
   const isPlanned = entry.planned;
   const swipeWidth = isPlanned ? 76 : 112;
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStart.current = e.touches[0].clientX;
@@ -34,9 +39,17 @@ export function EntryRow({ entry, index, color, onDelete, onToggleConstant, onEd
 
   return (
     <div
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      style={{ position: 'relative', overflow: 'hidden', borderRadius: 10 }}
+      ref={setNodeRef}
+      {...attributes}
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: 10,
+        transform: CSS.Transform.toString(transform),
+        transition: transition ?? undefined,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 1 : 'auto',
+      }}
     >
       <div style={{
         position: 'absolute', right: 0, top: 0, bottom: 0,
@@ -60,15 +73,19 @@ export function EntryRow({ entry, index, color, onDelete, onToggleConstant, onEd
         </button>
       </div>
 
-      <div style={{
-        background: isPlanned ? 'var(--planned-bg)' : 'var(--surface)',
-        padding: '11px 12px',
-        display: 'flex', alignItems: 'center', gap: 10,
-        borderLeft: isPlanned ? '3px dashed var(--planned-border)' : '3px solid transparent',
-        transform: swiped ? `translateX(-${swipeWidth}px)` : 'translateX(0)',
-        transition: 'transform 0.22s cubic-bezier(0.4,0,0.2,1)',
-        borderRadius: 10, position: 'relative', zIndex: 1,
-      }}>
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          background: isPlanned ? 'var(--planned-bg)' : 'var(--surface)',
+          padding: '11px 12px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          borderLeft: isPlanned ? '3px dashed var(--planned-border)' : '3px solid transparent',
+          transform: swiped ? `translateX(-${swipeWidth}px)` : 'translateX(0)',
+          transition: 'transform 0.22s cubic-bezier(0.4,0,0.2,1)',
+          borderRadius: 10, position: 'relative', zIndex: 1,
+        }}
+      >
         <button
           onClick={() => onToggleConstant(index)}
           title={entry.constant ? t.recurring : ''}
@@ -123,6 +140,13 @@ export function EntryRow({ entry, index, color, onDelete, onToggleConstant, onEd
               <div style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 500 }}>{t.asPlanned}</div>
             )}
           </div>
+        </div>
+
+        <div
+          {...listeners}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, flexShrink: 0, color: 'var(--text-3)', opacity: 0.4, touchAction: 'none' }}
+        >
+          <DragHandle />
         </div>
       </div>
     </div>
