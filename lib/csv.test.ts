@@ -3,14 +3,14 @@ import { parseCSV, serializeCSV } from './csv';
 
 describe('parseCSV', () => {
   it('parses header-only CSV to empty array', () => {
-    const csv = 'date,amount,description,constant,planned,plannedAmount\n';
+    const csv = 'date,amount,description,constant,planned,plannedAmount,fromSavings\n';
     expect(parseCSV(csv)).toEqual([]);
   });
 
   it('parses a basic entry', () => {
     const csv = [
-      'date,amount,description,constant,planned,plannedAmount',
-      '2026-04-01,5000.00,Salary,true,false,',
+      'date,amount,description,constant,planned,plannedAmount,fromSavings',
+      '2026-04-01,5000.00,Salary,true,false,,false',
     ].join('\n');
     expect(parseCSV(csv)).toEqual([{
       date: '2026-04-01',
@@ -19,13 +19,14 @@ describe('parseCSV', () => {
       constant: true,
       planned: false,
       plannedAmount: undefined,
+      fromSavings: false,
     }]);
   });
 
   it('parses a verified planned entry', () => {
     const csv = [
-      'date,amount,description,constant,planned,plannedAmount',
-      '2026-05-01,5100.00,Salary,true,false,5000.00',
+      'date,amount,description,constant,planned,plannedAmount,fromSavings',
+      '2026-05-01,5100.00,Salary,true,false,5000.00,false',
     ].join('\n');
     expect(parseCSV(csv)).toEqual([{
       date: '2026-05-01',
@@ -34,6 +35,7 @@ describe('parseCSV', () => {
       constant: true,
       planned: false,
       plannedAmount: 5000,
+      fromSavings: false,
     }]);
   });
 
@@ -49,6 +51,39 @@ describe('parseCSV', () => {
       constant: false,
       planned: false,
       plannedAmount: undefined,
+      fromSavings: false,
+    }]);
+  });
+
+  it('parses fromSavings: true', () => {
+    const csv = [
+      'date,amount,description,constant,planned,plannedAmount,fromSavings',
+      '2026-04-10,200.00,Car repair,false,false,,true',
+    ].join('\n');
+    expect(parseCSV(csv)).toEqual([{
+      date: '2026-04-10',
+      amount: 200,
+      description: 'Car repair',
+      constant: false,
+      planned: false,
+      plannedAmount: undefined,
+      fromSavings: true,
+    }]);
+  });
+
+  it('defaults fromSavings to false when column absent (legacy CSV)', () => {
+    const csv = [
+      'date,amount,description,constant,planned,plannedAmount',
+      '2026-04-01,200.00,Car repair,false,false,',
+    ].join('\n');
+    expect(parseCSV(csv)).toEqual([{
+      date: '2026-04-01',
+      amount: 200,
+      description: 'Car repair',
+      constant: false,
+      planned: false,
+      plannedAmount: undefined,
+      fromSavings: false,
     }]);
   });
 });
@@ -62,6 +97,7 @@ describe('serializeCSV', () => {
       constant: true,
       planned: false,
       plannedAmount: undefined,
+      fromSavings: false,
     }];
     const csv = serializeCSV(entries);
     expect(parseCSV(csv)).toEqual(entries);
@@ -75,12 +111,26 @@ describe('serializeCSV', () => {
       constant: true,
       planned: false,
       plannedAmount: 5000,
+      fromSavings: false,
     }];
     expect(parseCSV(serializeCSV(entries))).toEqual(entries);
   });
 
   it('serializes empty array to header only', () => {
     const csv = serializeCSV([]);
-    expect(csv).toBe('date,amount,description,constant,planned,plannedAmount\n');
+    expect(csv).toBe('date,amount,description,constant,planned,plannedAmount,fromSavings\n');
+  });
+
+  it('round-trips fromSavings: true', () => {
+    const entries = [{
+      date: '2026-04-10',
+      amount: 200,
+      description: 'Car repair',
+      constant: false,
+      planned: false,
+      plannedAmount: undefined,
+      fromSavings: true,
+    }];
+    expect(parseCSV(serializeCSV(entries))).toEqual(entries);
   });
 });

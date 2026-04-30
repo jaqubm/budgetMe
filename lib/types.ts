@@ -7,6 +7,7 @@ export interface Entry {
   constant: boolean;
   planned: boolean;
   plannedAmount?: number; // set after verification
+  fromSavings?: boolean;  // draws from the savings pool (income and expenses only)
 }
 
 export interface MonthData {
@@ -14,6 +15,7 @@ export interface MonthData {
   expenses: Entry[];
   savings: Entry[];
   startBalance: number;
+  openingSavings: number; // previous month's closing savings pool balance
 }
 
 export const CATEGORIES: { key: Category; label: string }[] = [

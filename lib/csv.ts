@@ -1,6 +1,6 @@
 import type { Entry } from './types';
 
-const HEADER = 'date,amount,description,constant,planned,plannedAmount';
+const HEADER = 'date,amount,description,constant,planned,plannedAmount,fromSavings';
 
 export function parseCSV(text: string): Entry[] {
   const lines = text.trim().split('\n').filter(Boolean);
@@ -21,6 +21,7 @@ export function parseCSV(text: string): Entry[] {
       constant:      get('constant') === 'true',
       planned:       hasPlanned ? get('planned') === 'true' : false,
       plannedAmount: plannedAmountRaw ? parseFloat(plannedAmountRaw) : undefined,
+      fromSavings:   get('fromSavings') === 'true',
     };
   });
 }
@@ -34,6 +35,7 @@ export function serializeCSV(entries: Entry[]): string {
       e.constant,
       e.planned,
       e.plannedAmount != null ? e.plannedAmount.toFixed(2) : '',
+      e.fromSavings ? 'true' : 'false',
     ].join(',')
   );
   return [HEADER, ...rows].join('\n') + '\n';
