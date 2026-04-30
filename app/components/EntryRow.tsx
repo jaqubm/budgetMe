@@ -48,7 +48,8 @@ export function EntryRow({ id, entry, index, color, onDelete, onToggleConstant, 
         transform: CSS.Transform.toString(transform),
         transition: transition ?? undefined,
         opacity: isDragging ? 0.5 : 1,
-        zIndex: isDragging ? 1 : 'auto',
+        zIndex: isDragging ? 1 : 0,
+        isolation: 'isolate',
       }}
     >
       <div style={{
@@ -83,7 +84,7 @@ export function EntryRow({ id, entry, index, color, onDelete, onToggleConstant, 
           borderLeft: isPlanned ? '3px dashed var(--planned-border)' : '3px solid transparent',
           transform: swiped ? `translateX(-${swipeWidth}px)` : 'translateX(0)',
           transition: 'transform 0.22s cubic-bezier(0.4,0,0.2,1)',
-          borderRadius: 10, position: 'relative', zIndex: 1,
+          borderRadius: 10, position: 'relative',
         }}
       >
         <button
