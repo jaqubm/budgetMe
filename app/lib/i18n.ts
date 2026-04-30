@@ -62,6 +62,11 @@ export interface Translations {
   subCategory: string;
   subCategoryPlaceholder: string;
   general: string;
+  renameGroup: string;
+  deleteGroup: string;
+  confirmDeleteGroup: (name: string, count: number) => string;
+  rename: string;
+  delete: string;
   continueWithGoogle: string;
   signingIn: string;
   tagline: string;
@@ -130,6 +135,11 @@ export const translations: Record<Lang, Translations> = {
     subCategory: 'Sub-category',
     subCategoryPlaceholder: 'e.g. Subscriptions',
     general: 'General',
+    renameGroup: 'Rename group',
+    deleteGroup: 'Delete group',
+    confirmDeleteGroup: (name, count) => `Delete "${name}" and its ${count} entr${count === 1 ? 'y' : 'ies'}?`,
+    rename: 'Rename',
+    delete: 'Delete',
     continueWithGoogle: 'Continue with Google',
     signingIn: 'Signing in\u2026',
     tagline: 'Your finances, stored\nonly on your Google Drive.',
@@ -196,6 +206,11 @@ export const translations: Record<Lang, Translations> = {
     subCategory: 'Podkategoria',
     subCategoryPlaceholder: 'np. Subskrypcje',
     general: 'Ogólne',
+    renameGroup: 'Zmień nazwę grupy',
+    deleteGroup: 'Usuń grupę',
+    confirmDeleteGroup: (name, count) => `Usunąć "${name}" i ${count} ${count === 1 ? 'wpis' : 'wpisy'}?`,
+    rename: 'Zmień nazwę',
+    delete: 'Usuń',
     continueWithGoogle: 'Kontynuuj przez Google',
     signingIn: 'Logowanie\u2026',
     tagline: 'Twoje finanse, przechowywane\nwyłącznie na Twoim Dysku Google.',

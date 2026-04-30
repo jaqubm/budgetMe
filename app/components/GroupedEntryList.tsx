@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   DndContext, DragOverlay, closestCenter,
   PointerSensor, TouchSensor, useSensor, useSensors, useDroppable,
@@ -159,6 +159,10 @@ export function GroupedEntryList({
   const [activeEntry, setActiveEntry] = useState<Entry | null>(null);
   const [activeGroupName, setActiveGroupName] = useState<string | null>(null);
   const [overGroupName, setOverGroupName] = useState<string | null>(null);
+  const [renamingGroup, setRenamingGroup] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [confirmDeleteGroup, setConfirmDeleteGroup] = useState<string | null>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
 
   const groups = buildGroups(entries, groupOrder);
   const hasNamedGroups = groups.length > 1;
@@ -246,6 +250,33 @@ export function GroupedEntryList({
     onEntriesChange(newEntries, newGroupOrder);
   }
 
+  function startRename(name: string) {
+    setConfirmDeleteGroup(null);
+    setRenamingGroup(name);
+    setRenameValue(name);
+    setTimeout(() => renameInputRef.current?.select(), 0);
+  }
+
+  function commitRename(oldName: string) {
+    const newName = renameValue.trim();
+    setRenamingGroup(null);
+    if (!newName || newName === oldName) return;
+    const newGroups = groups.map(g =>
+      g.name === oldName ? { ...g, name: newName, items: g.items.map(it => ({ ...it, entry: { ...it.entry, subCategory: newName } })) } : g
+    );
+    const newEntries = flattenGroups(newGroups);
+    const newGroupOrder = newGroups.filter(g => g.name !== '').map(g => g.name);
+    onEntriesChange(newEntries, newGroupOrder);
+  }
+
+  function deleteGroup(name: string) {
+    setConfirmDeleteGroup(null);
+    const newGroups = groups.map(g => g.name === name ? { ...g, items: [] } : g);
+    const newEntries = flattenGroups(newGroups);
+    const newGroupOrder = newGroups.filter(g => g.name !== '' && g.name !== name).map(g => g.name);
+    onEntriesChange(newEntries, newGroupOrder);
+  }
+
   const isCrossGroupDrag = activeEntry !== null && overGroupName !== null && overGroupName !== activeGroupName;
 
   const chevronStyle: React.CSSProperties = {
@@ -285,18 +316,74 @@ export function GroupedEntryList({
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: isDesktop ? '4px 10px 2px' : '4px 2px 2px',
-                  marginBottom: 2,
+                  marginBottom: 2, gap: 6,
                 }}>
-                  <span style={{
-                    fontSize: 10.5, fontWeight: 700,
-                    color: isDropTarget ? 'oklch(45% 0.14 250)' : (isGeneral ? 'var(--text-3)' : 'var(--text-2)'),
-                    textTransform: 'uppercase', letterSpacing: '0.07em',
-                    transition: 'color 0.15s',
-                  }}>
-                    {isGeneral ? t.general : group.name}
-                  </span>
-                  {!isGeneral && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {/* Group name / rename input */}
+                  {!isGeneral && renamingGroup === group.name ? (
+                    <input
+                      ref={renameInputRef}
+                      value={renameValue}
+                      onChange={e => setRenameValue(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') commitRename(group.name);
+                        if (e.key === 'Escape') setRenamingGroup(null);
+                      }}
+                      onBlur={() => commitRename(group.name)}
+                      style={{
+                        flex: 1, fontSize: 10.5, fontWeight: 700,
+                        textTransform: 'uppercase', letterSpacing: '0.07em',
+                        color: 'var(--text)', background: 'var(--bg)',
+                        border: '1.5px solid var(--border)', borderRadius: 5,
+                        padding: '2px 6px', outline: 'none', fontFamily: 'inherit',
+                      }}
+                    />
+                  ) : (
+                    <span style={{
+                      fontSize: 10.5, fontWeight: 700,
+                      color: isDropTarget ? 'oklch(45% 0.14 250)' : (isGeneral ? 'var(--text-3)' : 'var(--text-2)'),
+                      textTransform: 'uppercase', letterSpacing: '0.07em',
+                      transition: 'color 0.15s', flex: 1,
+                    }}>
+                      {isGeneral ? t.general : group.name}
+                    </span>
+                  )}
+
+                  {/* Delete confirmation inline */}
+                  {!isGeneral && confirmDeleteGroup === group.name ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, color: 'var(--text-2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                        {t.confirmDeleteGroup(group.name, group.items.length)}
+                      </span>
+                      <button
+                        onClick={() => setConfirmDeleteGroup(null)}
+                        style={{ ...chevronStyle, fontSize: 10, padding: '0 5px', width: 'auto', color: 'var(--text-2)' }}
+                      >{t.cancel}</button>
+                      <button
+                        onClick={() => deleteGroup(group.name)}
+                        style={{ ...chevronStyle, fontSize: 10, padding: '0 5px', width: 'auto', color: 'var(--expense)', fontWeight: 700 }}
+                      >{t.delete}</button>
+                    </div>
+                  ) : !isGeneral && renamingGroup !== group.name ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+                      <button
+                        onClick={() => startRename(group.name)}
+                        style={{ ...chevronStyle, fontSize: 10 }}
+                        title={t.renameGroup}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => { setRenamingGroup(null); setConfirmDeleteGroup(group.name); }}
+                        style={{ ...chevronStyle, fontSize: 10 }}
+                        title={t.deleteGroup}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14a2,2,0,0,1-2,2H8a2,2,0,0,1-2-2L5,6"/><path d="M10,11v6"/><path d="M14,11v6"/><path d="M9,6V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2"/>
+                        </svg>
+                      </button>
                       <button
                         onClick={() => moveGroup(gi, -1)}
                         disabled={gi <= 1}
@@ -310,7 +397,7 @@ export function GroupedEntryList({
                         title="Move group down"
                       >▼</button>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               )}
 
