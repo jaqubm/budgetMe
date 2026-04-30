@@ -65,7 +65,7 @@ export function SummaryBar({ income, expenses, savings, isFutureMonth, startBala
         </div>
         <button
           onClick={onEditStartBalance}
-          style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 5, background: 'oklch(100% 0 0 / 0.08)', border: 'none', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}
+          style={{ marginTop: 4, marginLeft: -8, display: 'flex', alignItems: 'center', gap: 5, background: 'oklch(100% 0 0 / 0.08)', border: 'none', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}
         >
           <span style={{ fontSize: 10.5, color: 'oklch(100% 0 0 / 0.5)', fontWeight: 500 }}>{t.startBalance}:</span>
           <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>{fmt(startBalance)}</span>
