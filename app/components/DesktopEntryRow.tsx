@@ -54,6 +54,7 @@ export function DesktopEntryRow({ entry, index, color, onDelete, onToggleConstan
           <span>{entry.date.slice(5).replace('-', '/')}</span>
           {entry.constant && <span style={{ color: isPlanned ? 'var(--planned)' : color, fontWeight: 600, fontSize: 10 }}>recurring</span>}
           {isPlanned && <span style={{ color: 'var(--planned)', fontWeight: 600, fontSize: 10, background: 'oklch(88% 0.004 260)', padding: '1px 5px', borderRadius: 3 }}>planned</span>}
+          {entry.fromSavings && <span style={{ color: 'var(--savings)', fontWeight: 600, fontSize: 10, background: 'oklch(93% 0.06 200)', padding: '1px 4px', borderRadius: 3 }}>savings</span>}
         </div>
       </div>
 
