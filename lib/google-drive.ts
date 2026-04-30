@@ -11,8 +11,8 @@ interface MonthFile {
   expenses: Entry[];
   savings: Entry[];
   startBalance: number;
-  openingSavings: number;  // prev month's savingsClosing, set once at month init
-  savingsClosing: number;  // recomputed on every write
+  savingsClosing: number;
+  // openingSavings is NOT stored — always read live from prev month's savingsClosing
 }
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 500): Promise<T> {
@@ -61,6 +61,18 @@ async function getRootFolderId(drive: ReturnType<typeof google.drive>): Promise<
 
 function monthFileName(year: string, month: string): string {
   return `${year}-${month}.json`;
+}
+
+function prevYearMonth(year: string, month: string): { year: string; month: string } {
+  let y = parseInt(year);
+  let m = parseInt(month);
+  m--;
+  if (m < 1) { m = 12; y--; }
+  return { year: String(y), month: String(m).padStart(2, '0') };
+}
+
+function firstOfMonth(year: string, month: string): string {
+  return `${year}-${month}-01`;
 }
 
 async function findFileId(
@@ -118,27 +130,15 @@ async function createMonthFile(
   return id;
 }
 
-function computeSavingsClosing(file: MonthFile): number {
+function computeSavingsClosing(file: MonthFile, openingSavings: number): number {
   const savingsSum = file.savings.reduce((s, e) => s + e.amount, 0);
   const fromSavingsDeductions = [...file.income, ...file.expenses]
     .filter(e => e.fromSavings)
     .reduce((s, e) => s + e.amount, 0);
-  return file.openingSavings + savingsSum - fromSavingsDeductions;
+  return openingSavings + savingsSum - fromSavingsDeductions;
 }
 
-function prevYearMonth(year: string, month: string): { year: string; month: string } {
-  let y = parseInt(year);
-  let m = parseInt(month);
-  m--;
-  if (m < 1) { m = 12; y--; }
-  return { year: String(y), month: String(m).padStart(2, '0') };
-}
-
-function firstOfMonth(year: string, month: string): string {
-  return `${year}-${month}-01`;
-}
-
-// Read the month file, apply a mutation, recompute savingsClosing, write back atomically.
+// Read current + prev month files in parallel, apply mutation, recompute savingsClosing, write back.
 async function mutateMonth(
   drive: ReturnType<typeof google.drive>,
   rootId: string,
@@ -146,12 +146,25 @@ async function mutateMonth(
   month: string,
   mutate: (data: MonthFile) => void
 ): Promise<void> {
-  const name = monthFileName(year, month);
-  const fileId = await findFileId(drive, name, rootId);
-  if (!fileId) throw new Error(`Month file not found: ${name}`);
-  const data = await readMonthFile(drive, fileId);
+  const { year: py, month: pm } = prevYearMonth(year, month);
+
+  // Tier 1: find both files in parallel (usually cached after first call)
+  const [fileId, prevFileId] = await Promise.all([
+    findFileId(drive, monthFileName(year, month), rootId),
+    findFileId(drive, monthFileName(py, pm), rootId),
+  ]);
+  if (!fileId) throw new Error(`Month file not found: ${monthFileName(year, month)}`);
+
+  // Tier 2: read both files in parallel
+  const [data, openingSavings] = await Promise.all([
+    readMonthFile(drive, fileId),
+    prevFileId
+      ? readMonthFile(drive, prevFileId).then(p => p.savingsClosing)
+      : Promise.resolve(0),
+  ]);
+
   mutate(data);
-  data.savingsClosing = computeSavingsClosing(data);
+  data.savingsClosing = computeSavingsClosing(data, openingSavings);
   await writeMonthFile(drive, fileId, data);
 }
 
@@ -180,50 +193,58 @@ async function _initAndGetMonth(
 ): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[]; startBalance: number; openingSavings: number }> {
   const drive  = driveClient(accessToken);
   const rootId = await getRootFolderId(drive);
-  const name   = monthFileName(year, month);
+  const { year: py, month: pm } = prevYearMonth(year, month);
 
-  const fileId = await findFileId(drive, name, rootId);
+  // Find both month files in parallel
+  const [fileId, prevFileId] = await Promise.all([
+    findFileId(drive, monthFileName(year, month), rootId),
+    findFileId(drive, monthFileName(py, pm), rootId),
+  ]);
+
   if (fileId) {
-    const data = await readMonthFile(drive, fileId);
+    // Existing month — read current + prev in parallel for live openingSavings
+    const [data, openingSavings] = await Promise.all([
+      readMonthFile(drive, fileId),
+      prevFileId
+        ? readMonthFile(drive, prevFileId).then(p => p.savingsClosing)
+        : Promise.resolve(0),
+    ]);
     return {
-      wasNew:        false,
-      income:        data.income,
-      expenses:      data.expenses,
-      savings:       data.savings,
-      startBalance:  data.startBalance,
-      openingSavings: data.openingSavings,
+      wasNew:         false,
+      income:         data.income,
+      expenses:       data.expenses,
+      savings:        data.savings,
+      startBalance:   data.startBalance,
+      openingSavings,
     };
   }
 
-  // New month — read prev month for opening savings and constant-entry seeds.
-  const { year: py, month: pm } = prevYearMonth(year, month);
-  const prevFileId = await findFileId(drive, monthFileName(py, pm), rootId);
-
+  // New month — seed constants and opening savings from prev month
   let openingSavings = 0;
   let income:   Entry[] = [];
   let expenses: Entry[] = [];
   let savings:  Entry[] = [];
 
   if (prevFileId) {
-    const prev   = await readMonthFile(drive, prevFileId);
-    openingSavings = prev.savingsClosing;
+    const prev      = await readMonthFile(drive, prevFileId);
+    openingSavings  = prev.savingsClosing;
     const firstDate = firstOfMonth(year, month);
     income   = prev.income.filter(e => e.constant).map(e => ({ ...e, date: firstDate }));
     expenses = prev.expenses.filter(e => e.constant).map(e => ({ ...e, date: firstDate }));
     savings  = prev.savings.filter(e => e.constant).map(e => ({ ...e, date: firstDate }));
   }
 
-  const newFile: MonthFile = { income, expenses, savings, startBalance: 0, openingSavings, savingsClosing: 0 };
-  newFile.savingsClosing = computeSavingsClosing(newFile);
-  await createMonthFile(drive, name, rootId, newFile);
+  const newFile: MonthFile = { income, expenses, savings, startBalance: 0, savingsClosing: 0 };
+  newFile.savingsClosing = computeSavingsClosing(newFile, openingSavings);
+  await createMonthFile(drive, monthFileName(year, month), rootId, newFile);
 
   return {
     wasNew: true,
-    income:        newFile.income,
-    expenses:      newFile.expenses,
-    savings:       newFile.savings,
-    startBalance:  newFile.startBalance,
-    openingSavings: newFile.openingSavings,
+    income:         newFile.income,
+    expenses:       newFile.expenses,
+    savings:        newFile.savings,
+    startBalance:   newFile.startBalance,
+    openingSavings,
   };
 }
 
