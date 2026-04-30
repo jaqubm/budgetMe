@@ -184,7 +184,7 @@ export async function initAndGetMonth(
   accessToken: string,
   year: string,
   month: string
-): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[]; startBalance: number }> {
+): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[]; startBalance: number; openingSavings: number }> {
   try {
     return await _initAndGetMonth(accessToken, year, month);
   } catch (err: unknown) {
@@ -203,9 +203,13 @@ async function _initAndGetMonth(
   accessToken: string,
   year: string,
   month: string
-): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[]; startBalance: number }> {
+): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[]; startBalance: number; openingSavings: number }> {
   const drive = driveClient(accessToken);
   const monthFolderId = await ensureFolderPath(drive, year, month);
+
+  // Always resolve prev month folder — needed for openingSavings regardless of wasNew.
+  const { year: py, month: pm } = prevYearMonth(year, month);
+  const prevFolderId = await ensureFolderPath(drive, py, pm);
 
   // Check existence of all three CSV files in parallel.
   const fileIds: (string | null)[] = await Promise.all(
@@ -217,8 +221,6 @@ async function _initAndGetMonth(
 
   if (missingIdxs.length > 0) {
     wasNew = true;
-    const { year: py, month: pm } = prevYearMonth(year, month);
-    const prevFolderId = await ensureFolderPath(drive, py, pm);
     const firstDate = firstOfMonth(year, month);
 
     // Fetch prev-month file IDs and their contents in parallel.
@@ -242,13 +244,19 @@ async function _initAndGetMonth(
     missingIdxs.forEach((i, j) => { fileIds[i] = newIds[j]; });
   }
 
-  // Read all three CSV files and start balance in parallel.
-  const [allEntries, startBalance] = await Promise.all([
+  // Read all three CSV files, start balance, and prev month's closing savings in parallel.
+  const [allEntries, startBalance, openingSavings] = await Promise.all([
     Promise.all(fileIds.map(id => id ? readCSVFile(drive, id) : Promise.resolve([]))),
     readStartBalance(drive, monthFolderId),
+    readSavingsClosing(drive, prevFolderId),
   ]);
 
-  return { wasNew, income: allEntries[0], expenses: allEntries[1], savings: allEntries[2], startBalance };
+  // Seed savings_closing.txt for new months so the chain is never broken.
+  if (wasNew) {
+    await writeSavingsClosing(drive, monthFolderId, openingSavings);
+  }
+
+  return { wasNew, income: allEntries[0], expenses: allEntries[1], savings: allEntries[2], startBalance, openingSavings };
 }
 
 export async function getEntries(
