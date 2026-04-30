@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Entry } from '@/lib/types';
-import { PinIcon, TrashIcon, EditIcon, CheckIcon, DragHandle } from './icons';
+import { PinIcon, TrashIcon, EditIcon, CheckIcon } from './icons';
 import { useT } from './LanguageContext';
 
 interface Props {
@@ -75,6 +75,7 @@ export function EntryRow({ id, entry, index, color, onDelete, onToggleConstant, 
       </div>
 
       <div
+        {...listeners}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         style={{
@@ -85,6 +86,7 @@ export function EntryRow({ id, entry, index, color, onDelete, onToggleConstant, 
           transform: swiped ? `translateX(-${swipeWidth}px)` : 'translateX(0)',
           transition: 'transform 0.22s cubic-bezier(0.4,0,0.2,1)',
           borderRadius: 10, position: 'relative',
+          touchAction: 'pan-y',
         }}
       >
         <button
@@ -143,12 +145,6 @@ export function EntryRow({ id, entry, index, color, onDelete, onToggleConstant, 
           </div>
         </div>
 
-        <div
-          {...listeners}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, flexShrink: 0, color: 'var(--text-3)', opacity: 0.4, touchAction: 'none' }}
-        >
-          <DragHandle />
-        </div>
       </div>
     </div>
   );

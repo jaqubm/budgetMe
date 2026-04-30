@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import {
   DndContext, DragOverlay, closestCenter,
-  PointerSensor, useSensor, useSensors, useDroppable,
+  PointerSensor, TouchSensor, useSensor, useSensors, useDroppable,
   type DragStartEvent, type DragOverEvent, type DragEndEvent,
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -152,7 +152,10 @@ export function GroupedEntryList({
   onEdit, onDelete, onToggleConstant, onVerify, onEntriesChange,
 }: Props) {
   const { t } = useT();
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  );
   const [activeEntry, setActiveEntry] = useState<Entry | null>(null);
   const [activeGroupName, setActiveGroupName] = useState<string | null>(null);
   const [overGroupName, setOverGroupName] = useState<string | null>(null);
