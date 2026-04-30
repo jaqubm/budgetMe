@@ -1,9 +1,19 @@
 import { google } from 'googleapis';
-import { parseCSV, serializeCSV } from './csv';
 import type { Entry, Category } from './types';
 
-// Folder IDs are stable — cache them across warm function instances to skip redundant list calls.
+// Root "budgetMe" folder ID is stable — cache across warm function instances.
 const folderCache = new Map<string, string>();
+// Month file IDs are stable — cache to skip redundant list calls.
+const fileIdCache = new Map<string, string>();
+
+interface MonthFile {
+  income: Entry[];
+  expenses: Entry[];
+  savings: Entry[];
+  startBalance: number;
+  openingSavings: number;  // prev month's savingsClosing, set once at month init
+  savingsClosing: number;  // recomputed on every write
+}
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 500): Promise<T> {
   let lastErr: unknown;
@@ -24,157 +34,96 @@ function driveClient(accessToken: string) {
   return google.drive({ version: 'v3', auth });
 }
 
-async function findOrCreateFolder(
-  drive: ReturnType<typeof google.drive>,
-  name: string,
-  parentId?: string
-): Promise<string> {
-  const cacheKey = `${parentId ?? 'root'}/${name}`;
-  const cached = folderCache.get(cacheKey);
+async function getRootFolderId(drive: ReturnType<typeof google.drive>): Promise<string> {
+  const cached = folderCache.get('budgetMe');
   if (cached) return cached;
 
-  const q = parentId
-    ? `name='${name}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`
-    : `name='${name}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false`;
+  const res = await drive.files.list({
+    q: `name='budgetMe' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false`,
+    fields: 'files(id)',
+    spaces: 'drive',
+  });
 
-  const res = await drive.files.list({ q, fields: 'files(id)', spaces: 'drive' });
   let id: string;
-
   if (res.data.files?.length) {
     id = res.data.files[0].id!;
   } else {
-    const created = await drive.files.create({
-      requestBody: {
-        name,
-        mimeType: 'application/vnd.google-apps.folder',
-        parents: parentId ? [parentId] : undefined,
-      },
+    const created = await withRetry(() => drive.files.create({
+      requestBody: { name: 'budgetMe', mimeType: 'application/vnd.google-apps.folder' },
       fields: 'id',
-    });
+    }));
     id = created.data.id!;
   }
 
-  folderCache.set(cacheKey, id);
+  folderCache.set('budgetMe', id);
   return id;
 }
 
-async function ensureFolderPath(drive: ReturnType<typeof google.drive>, year: string, month: string) {
-  const rootId  = await findOrCreateFolder(drive, 'budgetMe');
-  const yearId  = await findOrCreateFolder(drive, year, rootId);
-  const monthId = await findOrCreateFolder(drive, month, yearId);
-  return monthId;
+function monthFileName(year: string, month: string): string {
+  return `${year}-${month}.json`;
 }
 
-async function findFile(
+async function findFileId(
   drive: ReturnType<typeof google.drive>,
   name: string,
   parentId: string
 ): Promise<string | null> {
+  const cacheKey = `${parentId}/${name}`;
+  const cached = fileIdCache.get(cacheKey);
+  if (cached) return cached;
+
   const res = await drive.files.list({
     q: `name='${name}' and '${parentId}' in parents and trashed=false`,
     fields: 'files(id)',
     spaces: 'drive',
   });
-  return res.data.files?.[0]?.id ?? null;
+
+  const id = res.data.files?.[0]?.id ?? null;
+  if (id) fileIdCache.set(cacheKey, id);
+  return id;
 }
 
-async function readCSVFile(drive: ReturnType<typeof google.drive>, fileId: string): Promise<Entry[]> {
+async function readMonthFile(
+  drive: ReturnType<typeof google.drive>,
+  fileId: string
+): Promise<MonthFile> {
   const res = await drive.files.get({ fileId, alt: 'media' }, { responseType: 'text' });
-  return parseCSV(res.data as string);
+  return JSON.parse(res.data as string) as MonthFile;
 }
 
-async function writeCSVFile(
+async function writeMonthFile(
   drive: ReturnType<typeof google.drive>,
   fileId: string,
-  entries: Entry[]
+  data: MonthFile
 ): Promise<void> {
   await withRetry(() => drive.files.update({
     fileId,
-    media: { mimeType: 'text/csv', body: serializeCSV(entries) },
+    media: { mimeType: 'application/json', body: JSON.stringify(data) },
   }));
 }
 
-async function createCSVFile(
+async function createMonthFile(
   drive: ReturnType<typeof google.drive>,
   name: string,
   parentId: string,
-  entries: Entry[]
+  data: MonthFile
 ): Promise<string> {
-  const res = await drive.files.create({
+  const res = await withRetry(() => drive.files.create({
     requestBody: { name, parents: [parentId] },
-    media: { mimeType: 'text/csv', body: serializeCSV(entries) },
+    media: { mimeType: 'application/json', body: JSON.stringify(data) },
     fields: 'id',
-  });
-  return res.data.id!;
+  }));
+  const id = res.data.id!;
+  fileIdCache.set(`${parentId}/${name}`, id);
+  return id;
 }
 
-async function readStartBalance(
-  drive: ReturnType<typeof google.drive>,
-  monthFolderId: string
-): Promise<number> {
-  const fileId = await findFile(drive, 'balance.txt', monthFolderId);
-  if (!fileId) return 0;
-  const res = await drive.files.get({ fileId, alt: 'media' }, { responseType: 'text' });
-  const n = parseFloat(res.data as string);
-  return isNaN(n) ? 0 : n;
-}
-
-async function writeStartBalanceFile(
-  drive: ReturnType<typeof google.drive>,
-  monthFolderId: string,
-  amount: number
-): Promise<void> {
-  const fileId = await findFile(drive, 'balance.txt', monthFolderId);
-  const body   = String(amount);
-  if (fileId) {
-    await withRetry(() => drive.files.update({ fileId, media: { mimeType: 'text/plain', body } }));
-  } else {
-    await withRetry(() => drive.files.create({
-      requestBody: { name: 'balance.txt', parents: [monthFolderId] },
-      media: { mimeType: 'text/plain', body },
-      fields: 'id',
-    }));
-  }
-}
-
-async function readSavingsClosing(
-  drive: ReturnType<typeof google.drive>,
-  monthFolderId: string
-): Promise<number> {
-  const fileId = await findFile(drive, 'savings_closing.txt', monthFolderId);
-  if (!fileId) return 0;
-  const res = await drive.files.get({ fileId, alt: 'media' }, { responseType: 'text' });
-  const n = parseFloat(res.data as string);
-  return isNaN(n) ? 0 : n;
-}
-
-async function writeSavingsClosing(
-  drive: ReturnType<typeof google.drive>,
-  monthFolderId: string,
-  amount: number
-): Promise<void> {
-  const fileId = await findFile(drive, 'savings_closing.txt', monthFolderId);
-  const body   = String(amount);
-  if (fileId) {
-    await withRetry(() => drive.files.update({ fileId, media: { mimeType: 'text/plain', body } }));
-  } else {
-    await withRetry(() => drive.files.create({
-      requestBody: { name: 'savings_closing.txt', parents: [monthFolderId] },
-      media: { mimeType: 'text/plain', body },
-      fields: 'id',
-    }));
-  }
-}
-
-export async function setStartBalance(
-  accessToken: string,
-  year: string,
-  month: string,
-  amount: number
-): Promise<void> {
-  const drive = driveClient(accessToken);
-  const monthFolderId = await ensureFolderPath(drive, year, month);
-  await writeStartBalanceFile(drive, monthFolderId, amount);
+function computeSavingsClosing(file: MonthFile): number {
+  const savingsSum = file.savings.reduce((s, e) => s + e.amount, 0);
+  const fromSavingsDeductions = [...file.income, ...file.expenses]
+    .filter(e => e.fromSavings)
+    .reduce((s, e) => s + e.amount, 0);
+  return file.openingSavings + savingsSum - fromSavingsDeductions;
 }
 
 function prevYearMonth(year: string, month: string): { year: string; month: string } {
@@ -189,10 +138,23 @@ function firstOfMonth(year: string, month: string): string {
   return `${year}-${month}-01`;
 }
 
-const CATEGORIES: Category[] = ['income', 'expenses', 'savings'];
+// Read the month file, apply a mutation, recompute savingsClosing, write back atomically.
+async function mutateMonth(
+  drive: ReturnType<typeof google.drive>,
+  rootId: string,
+  year: string,
+  month: string,
+  mutate: (data: MonthFile) => void
+): Promise<void> {
+  const name = monthFileName(year, month);
+  const fileId = await findFileId(drive, name, rootId);
+  if (!fileId) throw new Error(`Month file not found: ${name}`);
+  const data = await readMonthFile(drive, fileId);
+  mutate(data);
+  data.savingsClosing = computeSavingsClosing(data);
+  await writeMonthFile(drive, fileId, data);
+}
 
-// Initializes the month folder + CSV files (seeding constants from prev month),
-// then returns all three entry lists in a single pass — avoids re-resolving folder paths.
 export async function initAndGetMonth(
   accessToken: string,
   year: string,
@@ -201,11 +163,10 @@ export async function initAndGetMonth(
   try {
     return await _initAndGetMonth(accessToken, year, month);
   } catch (err: unknown) {
-    // Stale folder cache: a cached folder ID was deleted from Drive externally.
-    // Clear cache and retry once so new folders are created cleanly.
     const e = err as { code?: number; message?: string };
     if (e?.code === 404 || e?.message?.includes('File not found')) {
       folderCache.clear();
+      fileIdCache.clear();
       return _initAndGetMonth(accessToken, year, month);
     }
     throw err;
@@ -217,65 +178,53 @@ async function _initAndGetMonth(
   year: string,
   month: string
 ): Promise<{ wasNew: boolean; income: Entry[]; expenses: Entry[]; savings: Entry[]; startBalance: number; openingSavings: number }> {
-  const drive = driveClient(accessToken);
-  const monthFolderId = await ensureFolderPath(drive, year, month);
+  const drive  = driveClient(accessToken);
+  const rootId = await getRootFolderId(drive);
+  const name   = monthFileName(year, month);
 
-  // Always resolve prev month folder — needed for openingSavings regardless of wasNew.
+  const fileId = await findFileId(drive, name, rootId);
+  if (fileId) {
+    const data = await readMonthFile(drive, fileId);
+    return {
+      wasNew:        false,
+      income:        data.income,
+      expenses:      data.expenses,
+      savings:       data.savings,
+      startBalance:  data.startBalance,
+      openingSavings: data.openingSavings,
+    };
+  }
+
+  // New month — read prev month for opening savings and constant-entry seeds.
   const { year: py, month: pm } = prevYearMonth(year, month);
-  const prevFolderId = await ensureFolderPath(drive, py, pm);
+  const prevFileId = await findFileId(drive, monthFileName(py, pm), rootId);
 
-  // Check existence of all three CSV files in parallel.
-  const fileIds: (string | null)[] = await Promise.all(
-    CATEGORIES.map(cat => findFile(drive, `${cat}.csv`, monthFolderId))
-  );
+  let openingSavings = 0;
+  let income:   Entry[] = [];
+  let expenses: Entry[] = [];
+  let savings:  Entry[] = [];
 
-  const missingIdxs = fileIds.map((id, i) => id === null ? i : -1).filter(i => i !== -1);
-  let wasNew = false;
-
-  if (missingIdxs.length > 0) {
-    wasNew = true;
+  if (prevFileId) {
+    const prev   = await readMonthFile(drive, prevFileId);
+    openingSavings = prev.savingsClosing;
     const firstDate = firstOfMonth(year, month);
-
-    // Fetch prev-month file IDs and their contents in parallel.
-    const prevFileIds = await Promise.all(
-      missingIdxs.map(i => findFile(drive, `${CATEGORIES[i]}.csv`, prevFolderId))
-    );
-    const prevEntries = await Promise.all(
-      prevFileIds.map(id => id ? readCSVFile(drive, id) : Promise.resolve([]))
-    );
-
-    // Create all missing files in parallel.
-    const newIds = await Promise.all(
-      missingIdxs.map((i, j) => {
-        const seed = prevEntries[j]
-          .filter(e => e.constant)
-          .map(e => ({ ...e, date: firstDate }));
-        return createCSVFile(drive, `${CATEGORIES[i]}.csv`, monthFolderId, seed);
-      })
-    );
-
-    missingIdxs.forEach((i, j) => { fileIds[i] = newIds[j]; });
+    income   = prev.income.filter(e => e.constant).map(e => ({ ...e, date: firstDate }));
+    expenses = prev.expenses.filter(e => e.constant).map(e => ({ ...e, date: firstDate }));
+    savings  = prev.savings.filter(e => e.constant).map(e => ({ ...e, date: firstDate }));
   }
 
-  // Read all three CSV files, start balance, and prev month's closing savings in parallel.
-  const [allEntries, startBalance, openingSavings] = await Promise.all([
-    Promise.all(fileIds.map(id => id ? readCSVFile(drive, id) : Promise.resolve([]))),
-    readStartBalance(drive, monthFolderId),
-    readSavingsClosing(drive, prevFolderId),
-  ]);
+  const newFile: MonthFile = { income, expenses, savings, startBalance: 0, openingSavings, savingsClosing: 0 };
+  newFile.savingsClosing = computeSavingsClosing(newFile);
+  await createMonthFile(drive, name, rootId, newFile);
 
-  // Seed savings_closing.txt for new months so the chain is never broken.
-  // Use the actual seeded entries to compute the correct closing (not just openingSavings),
-  // so constant savings entries are included from day one.
-  if (wasNew) {
-    const savingsSum = allEntries[2].reduce((sum, e) => sum + e.amount, 0);
-    const fromSavDeductions = [...allEntries[0], ...allEntries[1]]
-      .filter(e => e.fromSavings)
-      .reduce((sum, e) => sum + e.amount, 0);
-    await writeSavingsClosing(drive, monthFolderId, openingSavings + savingsSum - fromSavDeductions);
-  }
-
-  return { wasNew, income: allEntries[0], expenses: allEntries[1], savings: allEntries[2], startBalance, openingSavings };
+  return {
+    wasNew: true,
+    income:        newFile.income,
+    expenses:      newFile.expenses,
+    savings:       newFile.savings,
+    startBalance:  newFile.startBalance,
+    openingSavings: newFile.openingSavings,
+  };
 }
 
 export async function getEntries(
@@ -284,11 +233,12 @@ export async function getEntries(
   month: string,
   category: Category
 ): Promise<Entry[]> {
-  const drive = driveClient(accessToken);
-  const monthFolderId = await ensureFolderPath(drive, year, month);
-  const fileId = await findFile(drive, `${category}.csv`, monthFolderId);
+  const drive  = driveClient(accessToken);
+  const rootId = await getRootFolderId(drive);
+  const fileId = await findFileId(drive, monthFileName(year, month), rootId);
   if (!fileId) return [];
-  return readCSVFile(drive, fileId);
+  const data = await readMonthFile(drive, fileId);
+  return data[category];
 }
 
 export async function addEntry(
@@ -298,16 +248,9 @@ export async function addEntry(
   category: Category,
   entry: Entry
 ): Promise<void> {
-  const drive = driveClient(accessToken);
-  const monthFolderId = await ensureFolderPath(drive, year, month);
-  const fileId = await findFile(drive, `${category}.csv`, monthFolderId);
-  if (!fileId) {
-    await createCSVFile(drive, `${category}.csv`, monthFolderId, [entry]);
-    return;
-  }
-  const entries = await readCSVFile(drive, fileId);
-  entries.push(entry);
-  await writeCSVFile(drive, fileId, entries);
+  const drive  = driveClient(accessToken);
+  const rootId = await getRootFolderId(drive);
+  await mutateMonth(drive, rootId, year, month, data => { data[category].push(entry); });
 }
 
 export async function updateEntry(
@@ -318,13 +261,9 @@ export async function updateEntry(
   index: number,
   entry: Entry
 ): Promise<void> {
-  const drive = driveClient(accessToken);
-  const monthFolderId = await ensureFolderPath(drive, year, month);
-  const fileId = await findFile(drive, `${category}.csv`, monthFolderId);
-  if (!fileId) throw new Error('File not found');
-  const entries = await readCSVFile(drive, fileId);
-  entries[index] = entry;
-  await writeCSVFile(drive, fileId, entries);
+  const drive  = driveClient(accessToken);
+  const rootId = await getRootFolderId(drive);
+  await mutateMonth(drive, rootId, year, month, data => { data[category][index] = entry; });
 }
 
 export async function patchEntry(
@@ -335,13 +274,11 @@ export async function patchEntry(
   index: number,
   patch: Partial<Entry>
 ): Promise<void> {
-  const drive = driveClient(accessToken);
-  const monthFolderId = await ensureFolderPath(drive, year, month);
-  const fileId = await findFile(drive, `${category}.csv`, monthFolderId);
-  if (!fileId) throw new Error('File not found');
-  const entries = await readCSVFile(drive, fileId);
-  entries[index] = { ...entries[index], ...patch };
-  await writeCSVFile(drive, fileId, entries);
+  const drive  = driveClient(accessToken);
+  const rootId = await getRootFolderId(drive);
+  await mutateMonth(drive, rootId, year, month, data => {
+    data[category][index] = { ...data[category][index], ...patch };
+  });
 }
 
 export async function deleteEntry(
@@ -351,39 +288,18 @@ export async function deleteEntry(
   category: Category,
   index: number
 ): Promise<void> {
-  const drive = driveClient(accessToken);
-  const monthFolderId = await ensureFolderPath(drive, year, month);
-  const fileId = await findFile(drive, `${category}.csv`, monthFolderId);
-  if (!fileId) throw new Error('File not found');
-  const entries = await readCSVFile(drive, fileId);
-  entries.splice(index, 1);
-  await writeCSVFile(drive, fileId, entries);
+  const drive  = driveClient(accessToken);
+  const rootId = await getRootFolderId(drive);
+  await mutateMonth(drive, rootId, year, month, data => { data[category].splice(index, 1); });
 }
 
-export async function recomputeAndWriteSavingsClosing(
+export async function setStartBalance(
   accessToken: string,
   year: string,
-  month: string
+  month: string,
+  amount: number
 ): Promise<void> {
-  const drive = driveClient(accessToken);
-  const monthFolderId = await ensureFolderPath(drive, year, month);
-  const { year: py, month: pm } = prevYearMonth(year, month);
-  const prevFolderId = await ensureFolderPath(drive, py, pm);
-
-  const [allEntries, openingSavings] = await Promise.all([
-    Promise.all(CATEGORIES.map(cat =>
-      findFile(drive, `${cat}.csv`, monthFolderId)
-        .then(id => id ? readCSVFile(drive, id) : Promise.resolve([]))
-    )),
-    readSavingsClosing(drive, prevFolderId),
-  ]);
-
-  const [income, expenses, savings] = allEntries;
-  const fromSavingsDeductions = [...income, ...expenses]
-    .filter(e => e.fromSavings)
-    .reduce((sum, e) => sum + e.amount, 0);
-  const savingsSum = savings.reduce((sum, e) => sum + e.amount, 0);
-  const closing = openingSavings + savingsSum - fromSavingsDeductions;
-
-  await writeSavingsClosing(drive, monthFolderId, closing);
+  const drive  = driveClient(accessToken);
+  const rootId = await getRootFolderId(drive);
+  await mutateMonth(drive, rootId, year, month, data => { data.startBalance = amount; });
 }

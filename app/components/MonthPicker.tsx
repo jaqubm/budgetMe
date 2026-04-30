@@ -25,9 +25,10 @@ interface Props {
   ym: string;
   todayYm: string;
   onChange: (ym: string) => void;
+  disabled?: boolean;
 }
 
-export function MonthPicker({ ym, todayYm, onChange }: Props) {
+export function MonthPicker({ ym, todayYm, onChange, disabled }: Props) {
   const { t } = useT();
   const { year, month } = parseYM(ym);
   const isFuture = ym > todayYm;
@@ -38,7 +39,8 @@ export function MonthPicker({ ym, todayYm, onChange }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <button
           onClick={() => onChange(prevYM(ym))}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 6, borderRadius: 8, display: 'flex', alignItems: 'center' }}
+          disabled={disabled}
+          style={{ background: 'none', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer', color: disabled ? 'var(--text-3)' : 'var(--text)', padding: 6, borderRadius: 8, display: 'flex', alignItems: 'center', opacity: disabled ? 0.4 : 1 }}
         >
           <ChevronLeft />
         </button>
@@ -54,7 +56,8 @@ export function MonthPicker({ ym, todayYm, onChange }: Props) {
 
         <button
           onClick={() => onChange(nextYM(ym))}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 6, borderRadius: 8, display: 'flex', alignItems: 'center' }}
+          disabled={disabled}
+          style={{ background: 'none', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer', color: disabled ? 'var(--text-3)' : 'var(--text)', padding: 6, borderRadius: 8, display: 'flex', alignItems: 'center', opacity: disabled ? 0.4 : 1 }}
         >
           <ChevronRight />
         </button>
@@ -64,6 +67,7 @@ export function MonthPicker({ ym, todayYm, onChange }: Props) {
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
           <button
             onClick={() => onChange(todayYm)}
+            disabled={disabled}
             style={{
               background: 'none',
               border: '1px solid var(--border)',
@@ -71,12 +75,13 @@ export function MonthPicker({ ym, todayYm, onChange }: Props) {
               padding: '3px 12px',
               fontSize: 11.5,
               fontWeight: 600,
-              color: 'var(--text-2)',
-              cursor: 'pointer',
+              color: disabled ? 'var(--text-3)' : 'var(--text-2)',
+              cursor: disabled ? 'not-allowed' : 'pointer',
               fontFamily: 'Plus Jakarta Sans, sans-serif',
               display: 'flex',
               alignItems: 'center',
               gap: 5,
+              opacity: disabled ? 0.4 : 1,
             }}
           >
             <ClockIcon /> {t.today}

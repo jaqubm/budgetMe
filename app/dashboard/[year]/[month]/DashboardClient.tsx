@@ -72,6 +72,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
     setData(d => ({ ...d, [cat]: entries }));
 
   const handleChangeMonth = (newYm: string) => {
+    if (loading) return;
     const [y, m] = newYm.split('-');
     router.push(`/dashboard/${y}/${m}`);
   };
@@ -201,7 +202,8 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button
               onClick={() => handleChangeMonth(prevYm())}
-              style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}
+              disabled={loading}
+              style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', opacity: loading ? 0.4 : 1 }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15,18 9,12 15,6"/></svg>
             </button>
@@ -215,7 +217,8 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
             </div>
             <button
               onClick={() => handleChangeMonth(nextYm())}
-              style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}
+              disabled={loading}
+              style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', opacity: loading ? 0.4 : 1 }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9,18 15,12 9,6"/></svg>
             </button>
@@ -225,7 +228,8 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
             {ym !== todayYm && (
               <button
                 onClick={() => handleChangeMonth(todayYm)}
-                style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5 }}
+                disabled={loading}
+                style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5, opacity: loading ? 0.4 : 1 }}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="7" x2="12" y2="12"/><line x1="12" y1="12" x2="16" y2="14"/></svg>
                 {t.today}
@@ -317,7 +321,7 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
   return (
     <div style={{ height: '100svh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
       <Header />
-      <MonthPicker ym={ym} todayYm={todayYm} onChange={handleChangeMonth} />
+      <MonthPicker ym={ym} todayYm={todayYm} onChange={handleChangeMonth} disabled={loading} />
       <SummaryCard income={data.income ?? []} expenses={data.expenses ?? []} savings={data.savings ?? []} isFuture={isFuture} startBalance={startBal} openingSavings={data.openingSavings} onEditStartBalance={() => setEditingBal(true)} />
 
       {showBanner && !isFuture && <ConstantBanner onDismiss={() => setShowBanner(false)} />}
