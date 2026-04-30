@@ -245,9 +245,9 @@ async function _initAndGetMonth(
     const prev      = await readMonthFile(drive, prevFileId);
     openingSavings  = prev.savingsClosing;
     const firstDate = firstOfMonth(year, month);
-    income   = prev.income.filter(e => e.constant).map(e => ({ ...e, date: firstDate }));
-    expenses = prev.expenses.filter(e => e.constant).map(e => ({ ...e, date: firstDate }));
-    savings  = prev.savings.filter(e => e.constant).map(e => ({ ...e, date: firstDate }));
+    income   = prev.income.filter(e => e.constant).map(e => ({ ...e, date: firstDate, planned: true }));
+    expenses = prev.expenses.filter(e => e.constant).map(e => ({ ...e, date: firstDate, planned: true }));
+    savings  = prev.savings.filter(e => e.constant).map(e => ({ ...e, date: firstDate, planned: true }));
     groupOrder = prev.groupOrder ?? { ...EMPTY_GROUP_ORDER };
   }
 
@@ -401,7 +401,7 @@ export async function syncRecurring(
         e => e.description.trim().toLowerCase() === entry.description.trim().toLowerCase()
       );
       if (!exists) {
-        data[cat].push({ ...entry, date: firstDate });
+        data[cat].push({ ...entry, date: firstDate, planned: true });
         added++;
       }
     }
