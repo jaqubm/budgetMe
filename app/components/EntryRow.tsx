@@ -90,7 +90,7 @@ export function EntryRow({ entry, index, color, onDelete, onToggleConstant, onEd
               <span style={{ color: 'var(--planned)', fontWeight: 600, fontSize: 10, background: 'oklch(88% 0.004 260)', padding: '1px 5px', borderRadius: 4 }}>{t.planned}</span>
             )}
             {entry.fromSavings && (
-              <span style={{ color: 'var(--savings)', fontWeight: 600, fontSize: 10, background: 'oklch(93% 0.06 200)', padding: '1px 5px', borderRadius: 4 }}>savings</span>
+              <span style={{ color: 'var(--savings)', fontWeight: 600, fontSize: 10, background: 'oklch(93% 0.06 200)', padding: '1px 5px', borderRadius: 4 }}>{t.savings}</span>
             )}
           </div>
         </div>

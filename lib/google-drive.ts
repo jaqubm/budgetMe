@@ -252,8 +252,14 @@ async function _initAndGetMonth(
   ]);
 
   // Seed savings_closing.txt for new months so the chain is never broken.
+  // Use the actual seeded entries to compute the correct closing (not just openingSavings),
+  // so constant savings entries are included from day one.
   if (wasNew) {
-    await writeSavingsClosing(drive, monthFolderId, openingSavings);
+    const savingsSum = allEntries[2].reduce((sum, e) => sum + e.amount, 0);
+    const fromSavDeductions = [...allEntries[0], ...allEntries[1]]
+      .filter(e => e.fromSavings)
+      .reduce((sum, e) => sum + e.amount, 0);
+    await writeSavingsClosing(drive, monthFolderId, openingSavings + savingsSum - fromSavDeductions);
   }
 
   return { wasNew, income: allEntries[0], expenses: allEntries[1], savings: allEntries[2], startBalance, openingSavings };
