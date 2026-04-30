@@ -23,17 +23,19 @@ export function SummaryCard({ income, expenses, savings, isFuture, startBalance,
   const aS = sumActual(savings),  pS = sumPlanned(savings);
 
   const tI = aI + pI, tE = aE + pE, tS = aS + pS;
-  const balance = startBalance + tI - tE - tS;
-  const hasData = tI > 0 || tE > 0 || tS > 0;
-  const total = tI || 1;
-
-  const expPct = Math.min(100, (tE / total) * 100);
-  const savPct = Math.min(100, (tS / total) * 100);
-  const incPct = Math.max(0, 100 - expPct - savPct);
 
   const fromSavIncome   = income.filter(e => e.fromSavings).reduce((s, e) => s + e.amount, 0);
   const fromSavExpenses = expenses.filter(e => e.fromSavings).reduce((s, e) => s + e.amount, 0);
   const closingSavings  = openingSavings + tS - fromSavIncome - fromSavExpenses;
+
+  // fromSavings expenses are paid from the savings pool, not from the regular balance
+  const balance = startBalance + tI - (tE - fromSavExpenses) - tS;
+  const hasData = tI > 0 || tE > 0 || tS > 0;
+  const total = tI || 1;
+
+  const expPct = Math.min(100, ((tE - fromSavExpenses) / total) * 100);
+  const savPct = Math.min(100, (tS / total) * 100);
+  const incPct = Math.max(0, 100 - expPct - savPct);
 
   const legend = [
     { label: t.income,   actual: aI, planned: pI, color: 'var(--income-mid)'  },
