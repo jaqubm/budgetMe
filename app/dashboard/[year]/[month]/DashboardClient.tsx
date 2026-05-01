@@ -206,7 +206,8 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
 
   const handleDesktopEntriesChange = (cat: Category, newEntries: Entry[], newGroupOrder: string[]) => {
     setData(d => ({ ...d, [cat]: newEntries, groupOrder: { ...d.groupOrder, [cat]: newGroupOrder } }));
-    callSetEntries(cat, newEntries, newGroupOrder).catch(() => {});
+    setLoading(true);
+    callSetEntries(cat, newEntries, newGroupOrder).catch(() => {}).finally(() => setLoading(false));
   };
 
   const handleMobileAdd = async (entry: Entry) => {
@@ -218,7 +219,8 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
 
   const handleMobileEntriesChange = (newEntries: Entry[], newGroupOrder: string[]) => {
     setData(d => ({ ...d, [activeTab]: newEntries, groupOrder: { ...d.groupOrder, [activeTab]: newGroupOrder } }));
-    callSetEntries(activeTab, newEntries, newGroupOrder).catch(() => {});
+    setLoading(true);
+    callSetEntries(activeTab, newEntries, newGroupOrder).catch(() => {}).finally(() => setLoading(false));
   };
 
   const allEntries = [...data.income, ...data.expenses, ...data.savings];
