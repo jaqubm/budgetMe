@@ -162,6 +162,7 @@ export function GroupedEntryList({
   const [renamingGroup, setRenamingGroup] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [confirmDeleteGroup, setConfirmDeleteGroup] = useState<string | null>(null);
+  const [hoveredGroupHeader, setHoveredGroupHeader] = useState<string | null>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   const groups = buildGroups(entries, groupOrder);
@@ -313,11 +314,15 @@ export function GroupedEntryList({
               }}
             >
               {showHeader && (
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: isDesktop ? '4px 10px 2px' : '4px 2px 2px',
-                  marginBottom: 2, gap: 6,
-                }}>
+                <div
+                  style={{
+                    display: 'flex', alignItems: 'center',
+                    padding: isDesktop ? '4px 10px 2px' : '4px 2px 2px',
+                    marginBottom: 2, gap: 6,
+                  }}
+                  onMouseEnter={() => setHoveredGroupHeader(group.name || '__gen')}
+                  onMouseLeave={() => setHoveredGroupHeader(null)}
+                >
                   {/* Group name / rename input */}
                   {!isGeneral && renamingGroup === group.name ? (
                     <input
@@ -330,11 +335,12 @@ export function GroupedEntryList({
                       }}
                       onBlur={() => commitRename(group.name)}
                       style={{
-                        flex: 1, fontSize: 10.5, fontWeight: 700,
+                        fontSize: 10.5, fontWeight: 700,
                         textTransform: 'uppercase', letterSpacing: '0.07em',
                         color: 'var(--text)', background: 'var(--bg)',
                         border: '1.5px solid var(--border)', borderRadius: 5,
                         padding: '2px 6px', outline: 'none', fontFamily: 'inherit',
+                        width: 120,
                       }}
                     />
                   ) : (
@@ -342,7 +348,7 @@ export function GroupedEntryList({
                       fontSize: 10.5, fontWeight: 700,
                       color: isDropTarget ? 'oklch(45% 0.14 250)' : (isGeneral ? 'var(--text-3)' : 'var(--text-2)'),
                       textTransform: 'uppercase', letterSpacing: '0.07em',
-                      transition: 'color 0.15s', flex: 1,
+                      transition: 'color 0.15s',
                     }}>
                       {isGeneral ? t.general : group.name}
                     </span>
@@ -364,7 +370,11 @@ export function GroupedEntryList({
                       >{t.delete}</button>
                     </div>
                   ) : !isGeneral && renamingGroup !== group.name ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0,
+                      opacity: hoveredGroupHeader === (group.name || '__gen') ? 1 : 0,
+                      transition: 'opacity 0.15s',
+                    }}>
                       <button
                         onClick={() => startRename(group.name)}
                         style={{ ...chevronStyle, fontSize: 10 }}

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Entry } from '@/lib/types';
-import { PinIcon, TrashIcon, EditIcon, CheckIcon, DragHandle } from './icons';
+import { PinIcon, TrashIcon, EditIcon, CheckIcon } from './icons';
 import { useT } from './LanguageContext';
 
 interface Props {
@@ -30,11 +30,12 @@ export function DesktopEntryRow({ id, entry, index, color, onDelete, onToggleCon
     <div
       ref={setNodeRef}
       {...attributes}
+      {...listeners}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'grid',
-        gridTemplateColumns: '20px 1fr auto auto auto',
+        gridTemplateColumns: '20px 1fr auto auto',
         alignItems: 'center',
         gap: 8,
         padding: '7px 10px',
@@ -44,12 +45,13 @@ export function DesktopEntryRow({ id, entry, index, color, onDelete, onToggleCon
         transition: transition ?? 'background 0.1s',
         transform: CSS.Transform.toString(transform),
         opacity: isDragging ? 0.5 : 1,
-        cursor: 'default',
+        cursor: isDragging ? 'grabbing' : 'grab',
         zIndex: isDragging ? 1 : 'auto',
       }}
     >
       <button
         onClick={() => onToggleConstant(index)}
+        onPointerDown={e => e.stopPropagation()}
         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', opacity: isPlanned ? 0.5 : 1, borderRadius: 4 }}
       >
         <PinIcon active={entry.constant} color={isPlanned ? 'var(--planned)' : color} />
@@ -85,6 +87,7 @@ export function DesktopEntryRow({ id, entry, index, color, onDelete, onToggleCon
         {isPlanned && (
           <button
             onClick={() => onVerify(index)}
+            onPointerDown={e => e.stopPropagation()}
             style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '4px 7px', borderRadius: 6, background: 'oklch(92% 0.005 260)', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--text-2)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
             <CheckIcon /> {t.verify}
@@ -92,24 +95,20 @@ export function DesktopEntryRow({ id, entry, index, color, onDelete, onToggleCon
         )}
         <button
           onClick={() => onEdit(index)}
+          onPointerDown={e => e.stopPropagation()}
           style={{ width: 26, height: 26, borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}
         >
           <EditIcon />
         </button>
         <button
           onClick={() => onDelete(index)}
+          onPointerDown={e => e.stopPropagation()}
           style={{ width: 26, height: 26, borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}
         >
           <TrashIcon />
         </button>
       </div>
 
-      <div
-        {...listeners}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, opacity: hovered ? 0.35 : 0, transition: 'opacity 0.15s', cursor: 'grab', flexShrink: 0, color: 'var(--text-3)' }}
-      >
-        <DragHandle />
-      </div>
     </div>
   );
 }
