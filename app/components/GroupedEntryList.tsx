@@ -316,84 +316,92 @@ export function GroupedEntryList({
               {showHeader && (
                 <div
                   style={{
-                    display: 'flex', alignItems: 'center',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: isDesktop ? '4px 10px 2px' : '4px 2px 2px',
                     marginBottom: 2, gap: 6,
                   }}
                   onMouseEnter={() => setHoveredGroupHeader(group.name || '__gen')}
                   onMouseLeave={() => setHoveredGroupHeader(null)}
                 >
-                  {/* Group name / rename input */}
-                  {!isGeneral && renamingGroup === group.name ? (
-                    <input
-                      ref={renameInputRef}
-                      value={renameValue}
-                      onChange={e => setRenameValue(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') commitRename(group.name);
-                        if (e.key === 'Escape') setRenamingGroup(null);
-                      }}
-                      onBlur={() => commitRename(group.name)}
-                      style={{
+                  {/* Left side: group name + hover-only rename/delete */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}>
+                    {!isGeneral && renamingGroup === group.name ? (
+                      <input
+                        ref={renameInputRef}
+                        value={renameValue}
+                        onChange={e => setRenameValue(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') commitRename(group.name);
+                          if (e.key === 'Escape') setRenamingGroup(null);
+                        }}
+                        onBlur={() => commitRename(group.name)}
+                        style={{
+                          fontSize: 10.5, fontWeight: 700,
+                          textTransform: 'uppercase', letterSpacing: '0.07em',
+                          color: 'var(--text)', background: 'var(--bg)',
+                          border: '1.5px solid var(--border)', borderRadius: 5,
+                          padding: '2px 6px', outline: 'none', fontFamily: 'inherit',
+                          width: 120,
+                        }}
+                      />
+                    ) : (
+                      <span style={{
                         fontSize: 10.5, fontWeight: 700,
+                        color: isDropTarget ? 'oklch(45% 0.14 250)' : (isGeneral ? 'var(--text-3)' : 'var(--text-2)'),
                         textTransform: 'uppercase', letterSpacing: '0.07em',
-                        color: 'var(--text)', background: 'var(--bg)',
-                        border: '1.5px solid var(--border)', borderRadius: 5,
-                        padding: '2px 6px', outline: 'none', fontFamily: 'inherit',
-                        width: 120,
-                      }}
-                    />
-                  ) : (
-                    <span style={{
-                      fontSize: 10.5, fontWeight: 700,
-                      color: isDropTarget ? 'oklch(45% 0.14 250)' : (isGeneral ? 'var(--text-3)' : 'var(--text-2)'),
-                      textTransform: 'uppercase', letterSpacing: '0.07em',
-                      transition: 'color 0.15s',
-                    }}>
-                      {isGeneral ? t.general : group.name}
-                    </span>
-                  )}
-
-                  {/* Delete confirmation inline */}
-                  {!isGeneral && confirmDeleteGroup === group.name ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                      <span style={{ fontSize: 10, color: 'var(--text-2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                        {t.confirmDeleteGroup(group.name, group.items.length)}
+                        transition: 'color 0.15s',
+                      }}>
+                        {isGeneral ? t.general : group.name}
                       </span>
-                      <button
-                        onClick={() => setConfirmDeleteGroup(null)}
-                        style={{ ...chevronStyle, fontSize: 10, padding: '0 5px', width: 'auto', color: 'var(--text-2)' }}
-                      >{t.cancel}</button>
-                      <button
-                        onClick={() => deleteGroup(group.name)}
-                        style={{ ...chevronStyle, fontSize: 10, padding: '0 5px', width: 'auto', color: 'var(--expense)', fontWeight: 700 }}
-                      >{t.delete}</button>
-                    </div>
-                  ) : !isGeneral && renamingGroup !== group.name ? (
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0,
-                      opacity: hoveredGroupHeader === (group.name || '__gen') ? 1 : 0,
-                      transition: 'opacity 0.15s',
-                    }}>
-                      <button
-                        onClick={() => startRename(group.name)}
-                        style={{ ...chevronStyle, fontSize: 10 }}
-                        title={t.renameGroup}
-                      >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => { setRenamingGroup(null); setConfirmDeleteGroup(group.name); }}
-                        style={{ ...chevronStyle, fontSize: 10 }}
-                        title={t.deleteGroup}
-                      >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14a2,2,0,0,1-2,2H8a2,2,0,0,1-2-2L5,6"/><path d="M10,11v6"/><path d="M14,11v6"/><path d="M9,6V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2"/>
-                        </svg>
-                      </button>
+                    )}
+
+                    {/* Hover-only rename/delete or delete confirmation */}
+                    {!isGeneral && confirmDeleteGroup === group.name ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                        <span style={{ fontSize: 10, color: 'var(--text-2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                          {t.confirmDeleteGroup(group.name, group.items.length)}
+                        </span>
+                        <button
+                          onClick={() => setConfirmDeleteGroup(null)}
+                          style={{ ...chevronStyle, fontSize: 10, padding: '0 5px', width: 'auto', color: 'var(--text-2)' }}
+                        >{t.cancel}</button>
+                        <button
+                          onClick={() => deleteGroup(group.name)}
+                          style={{ ...chevronStyle, fontSize: 10, padding: '0 5px', width: 'auto', color: 'var(--expense)', fontWeight: 700 }}
+                        >{t.delete}</button>
+                      </div>
+                    ) : !isGeneral && renamingGroup !== group.name ? (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0,
+                        opacity: hoveredGroupHeader === (group.name || '__gen') ? 1 : 0,
+                        transition: 'opacity 0.15s',
+                      }}>
+                        <button
+                          onClick={() => startRename(group.name)}
+                          style={{ ...chevronStyle, fontSize: 10 }}
+                          title={t.renameGroup}
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => { setRenamingGroup(null); setConfirmDeleteGroup(group.name); }}
+                          style={{ ...chevronStyle, fontSize: 10 }}
+                          title={t.deleteGroup}
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14a2,2,0,0,1-2,2H8a2,2,0,0,1-2-2L5,6"/><path d="M10,11v6"/><path d="M14,11v6"/><path d="M9,6V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2"/>
+                          </svg>
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Right side: always-visible up/down arrows */}
+                  {!isGeneral && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
                       <button
                         onClick={() => moveGroup(gi, -1)}
                         disabled={gi <= 1}
@@ -407,7 +415,7 @@ export function GroupedEntryList({
                         title="Move group down"
                       >▼</button>
                     </div>
-                  ) : null}
+                  )}
                 </div>
               )}
 
