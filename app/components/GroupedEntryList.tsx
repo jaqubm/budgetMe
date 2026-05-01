@@ -9,6 +9,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { Category, Entry } from '@/lib/types';
 import { DesktopEntryRow } from './DesktopEntryRow';
 import { EntryRow } from './EntryRow';
+import { Modal } from './Modal';
 import { useT } from './LanguageContext';
 
 interface GroupItem { entry: Entry; flatIdx: number }
@@ -355,22 +356,8 @@ export function GroupedEntryList({
                       </span>
                     )}
 
-                    {/* Hover-only rename/delete or delete confirmation */}
-                    {!isGeneral && confirmDeleteGroup === group.name ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                        <span style={{ fontSize: 10, color: 'var(--text-2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                          {t.confirmDeleteGroup(group.name, group.items.length)}
-                        </span>
-                        <button
-                          onClick={() => setConfirmDeleteGroup(null)}
-                          style={{ ...chevronStyle, fontSize: 10, padding: '0 5px', width: 'auto', color: 'var(--text-2)' }}
-                        >{t.cancel}</button>
-                        <button
-                          onClick={() => deleteGroup(group.name)}
-                          style={{ ...chevronStyle, fontSize: 10, padding: '0 5px', width: 'auto', color: 'var(--expense)', fontWeight: 700 }}
-                        >{t.delete}</button>
-                      </div>
-                    ) : !isGeneral && renamingGroup !== group.name ? (
+                    {/* Hover-only rename/delete */}
+                    {!isGeneral && renamingGroup !== group.name ? (
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0,
                         opacity: hoveredGroupHeader === (group.name || '__gen') ? 1 : 0,
@@ -459,6 +446,31 @@ export function GroupedEntryList({
           );
         })}
       </div>
+      <Modal
+        visible={confirmDeleteGroup !== null}
+        onClose={() => setConfirmDeleteGroup(null)}
+        title={t.deleteGroup}
+        width={360}
+      >
+        {confirmDeleteGroup !== null && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <p style={{ margin: 0, fontSize: 14, color: 'var(--text-2)', lineHeight: 1.5 }}>
+              {t.confirmDeleteGroup(confirmDeleteGroup, groups.find(g => g.name === confirmDeleteGroup)?.items.length ?? 0)}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                onClick={() => setConfirmDeleteGroup(null)}
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', fontFamily: 'inherit' }}
+              >{t.cancel}</button>
+              <button
+                onClick={() => deleteGroup(confirmDeleteGroup)}
+                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--expense)', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: 'inherit' }}
+              >{t.delete}</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <DragOverlay dropAnimation={null}>
         {activeEntry ? (
           <EntryOverlay
