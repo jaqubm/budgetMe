@@ -204,6 +204,23 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
     await callApi('PATCH', cat, { index: i, amount: actualAmount, planned: false, plannedAmount });
   };
 
+  const [confirmClearPlan, setConfirmClearPlan] = useState(false);
+
+  const handleClearPlan = async () => {
+    setConfirmClearPlan(false);
+    setLoading(true);
+    try {
+      const cats: Category[] = ['income', 'expenses', 'savings'];
+      await Promise.all(cats.map(cat => {
+        const filtered = getEntries(cat).filter(e => !e.planned);
+        setEntries(cat, filtered);
+        return callSetEntries(cat, filtered, data.groupOrder[cat]);
+      }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDesktopEntriesChange = (cat: Category, newEntries: Entry[], newGroupOrder: string[]) => {
     setData(d => ({ ...d, [cat]: newEntries, groupOrder: { ...d.groupOrder, [cat]: newGroupOrder } }));
     setLoading(true);
@@ -305,6 +322,16 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
               {t.syncRecurring}
             </button>
+            {plannedCount > 0 && (
+              <button
+                onClick={() => setConfirmClearPlan(true)}
+                disabled={loading}
+                style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid oklch(88% 0.06 22)', background: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--expense)', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5, opacity: loading ? 0.4 : 1 }}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14a2,2,0,0,1-2,2H8a2,2,0,0,1-2-2L5,6"/><path d="M10,11v6"/><path d="M14,11v6"/><path d="M9,6V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2"/></svg>
+                {t.clearPlan}
+              </button>
+            )}
             <LangToggle lang={lang} setLang={setLang} />
             <button
               onClick={() => signOut({ callbackUrl: '/sign-in' })}
@@ -386,6 +413,15 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
         })()}
       </div>
       <StartBalanceEditor visible={editingBal} current={startBal} isDesktop={true} onSave={handleSaveStartBal} onClose={() => setEditingBal(false)} />
+      <Modal visible={confirmClearPlan} onClose={() => setConfirmClearPlan(false)} title={t.clearPlan} width={380}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--text-2)', lineHeight: 1.5 }}>{t.clearPlanConfirm}</p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <button onClick={() => setConfirmClearPlan(false)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', fontFamily: 'inherit' }}>{t.cancel}</button>
+            <button onClick={handleClearPlan} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--expense)', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: 'inherit' }}>{t.clearPlan}</button>
+          </div>
+        </div>
+      </Modal>
       <SavingToast visible={loading} isDesktop={true} />
       <SyncToast message={syncMsg} isDesktop={true} />
 </>
@@ -403,7 +439,17 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
       {isFuture && plannedCount > 0 && <PlannedBanner plannedCount={plannedCount} verifiedCount={verifiedCount} />}
 
       <CategoryTabs active={activeTab} onChange={setActiveTab} hasPending={hasPending} />
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 14px 0' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, padding: '4px 14px 0' }}>
+        {plannedCount > 0 && (
+          <button
+            onClick={() => setConfirmClearPlan(true)}
+            disabled={loading}
+            style={{ background: 'none', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--expense)', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4, padding: '2px 0', opacity: loading ? 0.4 : 1 }}
+          >
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14a2,2,0,0,1-2,2H8a2,2,0,0,1-2-2L5,6"/><path d="M10,11v6"/><path d="M14,11v6"/><path d="M9,6V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2"/></svg>
+            {t.clearPlan}
+          </button>
+        )}
         <button
           onClick={handleSyncRecurring}
           disabled={loading}
@@ -481,6 +527,15 @@ export function DashboardClient({ year, month, todayYm, initialData, wasNew }: P
         color={mobileCatColor}
       />
       <StartBalanceEditor visible={editingBal} current={startBal} isDesktop={false} onSave={handleSaveStartBal} onClose={() => setEditingBal(false)} />
+      <Modal visible={confirmClearPlan} onClose={() => setConfirmClearPlan(false)} title={t.clearPlan} width={320}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--text-2)', lineHeight: 1.5 }}>{t.clearPlanConfirm}</p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <button onClick={() => setConfirmClearPlan(false)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', fontFamily: 'inherit' }}>{t.cancel}</button>
+            <button onClick={handleClearPlan} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--expense)', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: 'inherit' }}>{t.clearPlan}</button>
+          </div>
+        </div>
+      </Modal>
       <SavingToast visible={loading} isDesktop={false} />
       <SyncToast message={syncMsg} isDesktop={false} />
     </div>

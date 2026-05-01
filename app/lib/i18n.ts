@@ -67,6 +67,8 @@ export interface Translations {
   confirmDeleteGroup: (name: string, count: number) => string;
   rename: string;
   delete: string;
+  clearPlan: string;
+  clearPlanConfirm: string;
   continueWithGoogle: string;
   signingIn: string;
   tagline: string;
@@ -140,6 +142,8 @@ export const translations: Record<Lang, Translations> = {
     confirmDeleteGroup: (name, count) => `Delete "${name}" and its ${count} entr${count === 1 ? 'y' : 'ies'}?`,
     rename: 'Rename',
     delete: 'Delete',
+    clearPlan: 'Clear plan',
+    clearPlanConfirm: 'Remove all planned entries for this month across all categories?',
     continueWithGoogle: 'Continue with Google',
     signingIn: 'Signing in\u2026',
     tagline: 'Your finances, stored\nonly on your Google Drive.',
@@ -211,6 +215,8 @@ export const translations: Record<Lang, Translations> = {
     confirmDeleteGroup: (name, count) => `Usunąć "${name}" i ${count} ${count === 1 ? 'wpis' : 'wpisy'}?`,
     rename: 'Zmień nazwę',
     delete: 'Usuń',
+    clearPlan: 'Wyczyść plan',
+    clearPlanConfirm: 'Usunąć wszystkie planowane wpisy tego miesiąca we wszystkich kategoriach?',
     continueWithGoogle: 'Kontynuuj przez Google',
     signingIn: 'Logowanie\u2026',
     tagline: 'Twoje finanse, przechowywane\nwyłącznie na Twoim Dysku Google.',
