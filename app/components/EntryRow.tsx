@@ -125,7 +125,7 @@ export function EntryRow({ id, entry, index, color, onDelete, onToggleConstant, 
                 fontFamily: 'Plus Jakarta Sans, sans-serif',
               }}
             >
-              <CheckIcon /> {t.verify}
+              <CheckIcon /> <span className="hidden sm:inline">{t.verify}</span>
             </button>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
